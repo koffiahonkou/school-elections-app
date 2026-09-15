@@ -1,0 +1,543 @@
+import React, { useState } from 'react';
+import { ElectionConfig, ElectionData } from '../../../types';
+import {
+  Settings,
+  Shield,
+  Clock,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Trash2,
+  Download,
+  Upload,
+  AlertTriangle,
+  Check,
+  Save,
+  RotateCcw,
+  Image as ImageIcon,
+} from 'lucide-react';
+import { ConfirmModal } from '../../Common/ConfirmModal';
+import { SchoolLogo } from '../../Common/SchoolLogo';
+
+interface ElectionSettingsTabProps {
+  config: ElectionConfig;
+  onSaveConfig: (updated: ElectionConfig) => void;
+  onStartNewElection: (clearRoster: boolean) => void;
+  onExportBackupJson: () => void;
+  onImportBackupJson?: (data: ElectionData) => void;
+  onLoadDefaultDemo: () => void;
+}
+
+export const ElectionSettingsTab: React.FC<ElectionSettingsTabProps> = ({
+  config,
+  onSaveConfig,
+  onStartNewElection,
+  onExportBackupJson,
+  onImportBackupJson,
+  onLoadDefaultDemo,
+}) => {
+  const [formData, setFormData] = useState<ElectionConfig>({ ...config });
+  const [isSavedNotice, setIsSavedNotice] = useState(false);
+
+  // New election confirmation
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleImportBackupFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError(null);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+        if (!parsed || !parsed.config || !Array.isArray(parsed.positions)) {
+          setImportError('Invalid backup file structure. Ensure it is a valid election JSON backup.');
+          return;
+        }
+        if (onImportBackupJson) {
+          onImportBackupJson(parsed);
+        }
+      } catch (err) {
+        setImportError('Failed to parse backup JSON file: ' + String(err));
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (PNG, JPG, SVG, or WebP).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setFormData((prev) => ({ ...prev, logoUrl: base64 }));
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSaveConfig(formData);
+    setIsSavedNotice(true);
+    setTimeout(() => setIsSavedNotice(false), 3000);
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+          <Settings className="w-5 h-5 text-indigo-600" />
+          <span>Election Configuration & Security</span>
+        </h3>
+        <p className="text-xs text-slate-500 mt-0.5">
+          Manage general election parameters, privacy rules, and administrator credentials.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Details Card */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-4">
+          <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <span>Basic Election Details</span>
+          </h4>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Election Title *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="e.g. Student Council General Election"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                School or Organization Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.schoolName}
+                onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
+                placeholder="e.g. Lincoln High School"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Election Start Date
+              </label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Election End Date (Target Cutoff)
+              </label>
+              <input
+                type="date"
+                value={formData.endDate || formData.date}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Scheduled Closing Time
+              </label>
+              <div className="relative">
+                <input
+                  type="time"
+                  value={formData.closingTime || '18:00'}
+                  onChange={(e) => setFormData({ ...formData, closingTime: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-hidden"
+                />
+              </div>
+              <p className="mt-1 text-2xs text-slate-400">
+                Determines the precise countdown cutoff for polls.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* School Branding & Logo Placeholder Configuration Card */}
+        <div id="settings-school-logo-section" className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-indigo-600" />
+              <span>School Logo & Official Crest</span>
+            </h4>
+            <span
+              id="school-logo-status-tag"
+              className={`text-3xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                formData.logoUrl
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              }`}
+            >
+              {formData.logoUrl ? 'Custom School Logo Active' : 'Default Placeholder Active'}
+            </span>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-start gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            {/* Live Logo / Placeholder Preview Frame */}
+            <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200 shadow-xs shrink-0 self-center md:self-start text-center w-full sm:w-44">
+              <SchoolLogo
+                logoUrl={formData.logoUrl}
+                schoolName={formData.schoolName}
+                size="xl"
+                shape="shield"
+                showPlaceholderBadge={true}
+              />
+              <p className="text-3xs font-semibold text-slate-500 mt-2">
+                {formData.logoUrl ? 'Live Logo Preview' : 'Official Crest Placeholder'}
+              </p>
+            </div>
+
+            {/* Logo Settings & Customization Controls */}
+            <div className="space-y-3.5 flex-1 min-w-0 w-full">
+              <div>
+                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-1">
+                  Logo Image / Crest URL
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={formData.logoUrl || ''}
+                    onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+                    placeholder="https://example.edu/crest.png or data:image/..."
+                    className="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-hidden bg-white"
+                  />
+                  {formData.logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, logoUrl: '' })}
+                      className="px-3 py-2 rounded-xl border border-slate-200 hover:bg-rose-50 text-rose-600 text-xs font-bold transition-colors cursor-pointer"
+                      title="Reset to default placeholder"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <p className="text-2xs text-slate-500 mt-1">
+                  When left blank, the application automatically displays an academic crest placeholder featuring your school initials ({formData.schoolName.slice(0, 3).toUpperCase()}).
+                </p>
+              </div>
+
+              {/* Upload File Option */}
+              <div>
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-1">
+                  Upload School Emblem / Logo
+                </span>
+                <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/50 hover:bg-indigo-50 rounded-xl cursor-pointer transition-colors text-indigo-700 text-xs font-semibold">
+                  <Upload className="w-4 h-4 text-indigo-600" />
+                  <span>Choose file from device (PNG, SVG, JPG, WebP)</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Reset to Placeholder Button */}
+              <div className="pt-1 flex items-center justify-between gap-2 flex-wrap">
+                <button
+                  type="button"
+                  id="reset-to-logo-placeholder-btn"
+                  onClick={() => setFormData({ ...formData, logoUrl: '' })}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Reset to School Logo Placeholder</span>
+                </button>
+                <span className="text-2xs text-slate-400 italic">
+                  Shown in kiosk header, student login, and certified reports
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Election Clock & Countdown Preferences Card */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-4">
+          <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <Clock className="w-4 h-4 text-indigo-600" />
+            <span>Election Clock & Countdown Display</span>
+          </h4>
+
+          <div className="space-y-3">
+            {/* Show Clock to Voters Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200">
+              <div className="pr-4">
+                <span className="text-sm font-bold text-slate-900 block">
+                  Display Countdown Clock to Voters
+                </span>
+                <span className="text-xs text-slate-500 block mt-0.5">
+                  When enabled, voters will see the live countdown timer on the booth login screen as long as results aren't yet published.
+                </span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={formData.showClockToVoters}
+                  onChange={(e) =>
+                    setFormData({ ...formData, showClockToVoters: e.target.checked })
+                  }
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Voting Rules & Security Controls */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-4">
+          <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <Shield className="w-4 h-4 text-indigo-600" />
+            <span>Voting Rules & Ballot Integrity</span>
+          </h4>
+
+          <div className="space-y-3">
+            {/* Require PIN Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200">
+              <div className="pr-4">
+                <span className="text-sm font-bold text-slate-900 block">
+                  Enforce Student Access PIN / Security Code
+                </span>
+                <span className="text-xs text-slate-500 block mt-0.5">
+                  When enabled, voters must enter both their Student / Voter ID and their assigned 8-digit unique Access PIN to access the ballot.
+                </span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={formData.requirePin}
+                  onChange={(e) => setFormData({ ...formData, requirePin: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            {/* Hide Tallies During Voting Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200">
+              <div className="pr-4">
+                <span className="text-sm font-bold text-slate-900 block flex items-center gap-1.5">
+                  <span>Hide Candidate Tallies Until Polls Close</span>
+                  {formData.hideTalliesDuringVoting ? (
+                    <EyeOff className="w-4 h-4 text-amber-600" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-emerald-600" />
+                  )}
+                </span>
+                <span className="text-xs text-slate-500 block mt-0.5">
+                  Turnout participation numbers remain visible in real time, but individual candidate vote counts are withheld until polls are closed.
+                </span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={formData.hideTalliesDuringVoting}
+                  onChange={(e) =>
+                    setFormData({ ...formData, hideTalliesDuringVoting: e.target.checked })
+                  }
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            {/* Allow Practice Ballot Mode Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200">
+              <div className="pr-4">
+                <span className="text-sm font-bold text-slate-900 block">
+                  Enable Practice Ballot / Demo Mode
+                </span>
+                <span className="text-xs text-slate-500 block mt-0.5">
+                  Allows students and teachers to practice casting a demo ballot with prominent watermarks without counting toward real tallies.
+                </span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={formData.allowPracticeBallot}
+                  onChange={(e) =>
+                    setFormData({ ...formData, allowPracticeBallot: e.target.checked })
+                  }
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Electoral Commission Security PIN Card */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-4">
+          <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-indigo-600" />
+            <span>Administrator Passcode</span>
+          </h4>
+
+          <div className="max-w-md">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Admin Access PIN
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.adminPin}
+              onChange={(e) => setFormData({ ...formData, adminPin: e.target.value })}
+              placeholder="e.g. admin123"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-bold text-sm text-slate-900 focus:border-indigo-500 outline-hidden"
+            />
+            <p className="mt-1.5 text-2xs text-slate-400">
+              Used by school teachers and election officers to access this commission portal from the voting booth.
+            </p>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {isSavedNotice && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                <Check className="w-4 h-4" />
+                <span>Settings saved successfully!</span>
+              </span>
+            )}
+          </div>
+          <button
+            type="submit"
+            className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            <span>Save Settings</span>
+          </button>
+        </div>
+      </form>
+
+      {/* Danger Zone: Reset and New Election */}
+      <div className="bg-rose-50/70 p-6 rounded-3xl border-2 border-rose-200/80 space-y-4">
+        <div className="flex items-center gap-2.5 text-rose-900">
+          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+          <h4 className="text-base font-black tracking-tight">
+            Election Lifecycle & Data Reset
+          </h4>
+        </div>
+        <p className="text-xs text-rose-800 leading-relaxed max-w-2xl">
+          To prevent data leakage from previous school years or test sessions into a live count,
+          you can start a completely new election. Be sure to export a backup copy first if you wish
+          to preserve past results.
+        </p>
+
+        {importError && (
+          <div className="p-3 bg-rose-100 border border-rose-300 rounded-xl text-xs font-bold text-rose-900">
+            {importError}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          {/* Export Backup JSON */}
+          <button
+            type="button"
+            onClick={onExportBackupJson}
+            className="px-4 py-2.5 rounded-xl bg-white border border-rose-300 hover:bg-rose-100/50 text-rose-900 font-bold text-xs flex items-center gap-2 shadow-2xs transition-colors cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-rose-600" />
+            <span>Export Backup JSON</span>
+          </button>
+
+          {/* Import Backup JSON */}
+          {onImportBackupJson && (
+            <label className="px-4 py-2.5 rounded-xl bg-white border border-rose-300 hover:bg-rose-100/50 text-rose-900 font-bold text-xs flex items-center gap-2 shadow-2xs transition-colors cursor-pointer">
+              <Upload className="w-4 h-4 text-rose-600" />
+              <span>Import Backup JSON</span>
+              <input
+                type="file"
+                accept=".json,application/json"
+                onChange={handleImportBackupFile}
+                className="hidden"
+              />
+            </label>
+          )}
+
+          {/* Load Sample Demo Election */}
+          <button
+            type="button"
+            onClick={() => setIsDemoModalOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center gap-2 shadow-2xs transition-colors cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4 text-indigo-600" />
+            <span>Load Sample High School SRC Data</span>
+          </button>
+
+          {/* Start New Clean Election */}
+          <button
+            type="button"
+            onClick={() => setIsResetModalOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Start Brand New Election (Reset)</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Start New Election Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isResetModalOpen}
+        title="Start Brand New Election?"
+        message="This will completely clear all current ballots, votes cast, and test data so that zero prior data leaks into your next election. You will start with a fresh ballot in Setup mode."
+        confirmLabel="Reset & Start New Election"
+        confirmVariant="danger"
+        onConfirm={() => {
+          onStartNewElection(false);
+          setIsResetModalOpen(false);
+        }}
+        onCancel={() => setIsResetModalOpen(false)}
+      />
+
+      {/* Load Demo Data Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDemoModalOpen}
+        title="Load Sample Demo Election?"
+        message="This will load the Lincoln High School Student Council election demo with 5 positions, 10 candidates, and 15 sample student IDs."
+        confirmLabel="Load Demo Data"
+        confirmVariant="primary"
+        onConfirm={() => {
+          onLoadDefaultDemo();
+          setIsDemoModalOpen(false);
+        }}
+        onCancel={() => setIsDemoModalOpen(false)}
+      />
+    </div>
+  );
+};
