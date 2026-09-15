@@ -31,6 +31,7 @@ import { VoterLogin } from './components/VoterBooth/VoterLogin';
 import { BallotView, clearBallotAutosave } from './components/VoterBooth/BallotView';
 import { ReviewBallotModal } from './components/VoterBooth/ReviewBallotModal';
 import { VoteConfirmation } from './components/VoterBooth/VoteConfirmation';
+import { BoothBackground } from './components/VoterBooth/BoothBackground';
 import { AdminAuthModal } from './components/Admin/AdminAuthModal';
 import { AdminDashboard } from './components/Admin/AdminDashboard';
 import { AgentMonitoringView } from './components/Agents/AgentMonitoringView';
@@ -903,7 +904,7 @@ export default function App() {
       <main className="flex-1">
         {/* 1. VOTING BOOTH VIEW */}
         {currentView === 'booth' && (
-          <>
+          <BoothBackground variant={isVoteConfirmed ? 'confirmation' : !activeVoter ? 'login' : 'ballot'}>
             {isVoteConfirmed ? (
               <VoteConfirmation
                 voterName={confirmedVoterName}
@@ -947,7 +948,7 @@ export default function App() {
                 onSessionTimeout={handleVoterSessionTimeout}
               />
             )}
-          </>
+          </BoothBackground>
         )}
 
         {/* 2. ASPIRANT AGENT LIVE MONITORING PIE CHARTS */}

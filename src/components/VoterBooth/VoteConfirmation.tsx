@@ -53,9 +53,9 @@ export const VoteConfirmation: React.FC<VoteConfirmationProps> = ({
   return (
     <div
       id="vote-confirmation-screen"
-      className="min-h-[calc(100vh-5rem)] flex items-center justify-center p-4 sm:p-6 bg-linear-to-b from-emerald-50/50 via-white to-amber-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors duration-200"
+      className="min-h-[calc(100vh-5rem)] flex items-center justify-center p-4 sm:p-6 transition-colors duration-200"
     >
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-8 sm:p-10 shadow-xl border border-emerald-100 dark:border-slate-800 text-center animate-in fade-in zoom-in-95 duration-200 transition-colors">
+      <div className="w-full max-w-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-3xl p-8 sm:p-10 shadow-2xl border border-emerald-100/80 dark:border-slate-800 text-center animate-in fade-in zoom-in-95 duration-200 transition-colors relative z-10">
         {/* Success Icon */}
         <div className="w-20 h-20 mx-auto rounded-3xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-6 shadow-xs border-2 border-emerald-200 dark:border-emerald-800">
           <CheckCircle className="w-12 h-12 stroke-[2.2]" />

@@ -194,9 +194,9 @@ export const VoterLogin: React.FC<VoterLoginProps> = ({
   return (
     <div
       id="voter-login-screen"
-      className="min-h-[calc(100vh-5rem)] flex items-center justify-center p-4 sm:p-6 bg-linear-to-b from-amber-50/50 via-white to-orange-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors duration-200"
+      className="min-h-[calc(100vh-5rem)] flex items-center justify-center p-4 sm:p-6 transition-colors duration-200"
     >
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-xl border border-amber-100/80 dark:border-slate-800 transition-all">
+      <div className="w-full max-w-md bg-white/95 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200/80 dark:border-slate-800 transition-all relative z-10">
         {/* School Branding & Logo Placeholder */}
         <div id="voter-school-branding" className="flex flex-col items-center justify-center text-center pb-5 mb-5 border-b border-slate-100 dark:border-slate-800">
           <SchoolLogo

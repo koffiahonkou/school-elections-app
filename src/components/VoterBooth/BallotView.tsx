@@ -358,11 +358,11 @@ export const BallotView: React.FC<BallotViewProps> = ({
   return (
     <div
       id="voter-ballot-screen"
-      className="min-h-[calc(100vh-5rem)] bg-slate-50/60 dark:bg-slate-950 py-6 px-3 sm:px-6 lg:px-8 transition-colors duration-200"
+      className="min-h-[calc(100vh-5rem)] py-6 px-3 sm:px-6 lg:px-8 transition-colors duration-200"
     >
       <div className="max-w-4xl mx-auto space-y-5 sm:space-y-6">
         {/* Top Info Bar */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-200/90 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/90 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 font-black flex items-center justify-center text-sm border border-amber-300 dark:border-amber-800 shrink-0">
               {voter.fullName.charAt(0)}
