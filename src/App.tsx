@@ -128,16 +128,30 @@ export default function App() {
 
     // Load from online server first, fallback to IndexedDB
     const initializeData = async () => {
+      let resolved = false;
+
+      // Safety timeout: Ensure the app renders within 2 seconds even if IndexedDB is slow or blocked
+      const safetyTimeout = setTimeout(() => {
+        if (!resolved && isMounted) {
+          resolved = true;
+          console.warn('Initial storage load timed out, rendering with default election data');
+          setData((prev) => prev || getDefaultElectionData());
+          setStatus('Setup');
+        }
+      }, 2000);
+
       try {
         const response = await fetch('/api/election');
-        if (response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (response.ok && contentType && contentType.includes('application/json')) {
           const json = await response.json();
           if (json.success && json.data && isMounted) {
+            resolved = true;
+            clearTimeout(safetyTimeout);
             setData(json.data);
             if (json.status) {
               setStatus(json.status);
             }
-            // Save local cache copy
             saveElectionData(json.data).catch(() => {});
             return;
           }
@@ -149,7 +163,9 @@ export default function App() {
       // Fallback to IndexedDB / localStorage
       try {
         const loaded = await loadElectionData();
-        if (isMounted) {
+        if (isMounted && !resolved) {
+          resolved = true;
+          clearTimeout(safetyTimeout);
           setData(loaded);
           if (loaded.ballots.length > 0) {
             setStatus('Open');
@@ -159,7 +175,9 @@ export default function App() {
         }
       } catch (fallbackErr) {
         console.error('Failed to load local election data:', fallbackErr);
-        if (isMounted) {
+        if (isMounted && !resolved) {
+          resolved = true;
+          clearTimeout(safetyTimeout);
           const fallback = getDefaultElectionData();
           setData(fallback);
           setStatus('Open');
@@ -174,7 +192,8 @@ export default function App() {
       if (document.hidden) return;
       try {
         const res = await fetch('/api/election');
-        if (res.ok) {
+        const contentType = res.headers.get('content-type');
+        if (res.ok && contentType && contentType.includes('application/json')) {
           const json = await res.json();
           if (json.success && json.data && isMounted) {
             // Merge updated ballots, voters, and logs from server without disrupting voter's form entry
