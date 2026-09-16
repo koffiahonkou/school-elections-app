@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ElectionConfig, ElectionData } from '../../../types';
+import { ElectionConfig, ElectionData, BackgroundThemeOption } from '../../../types';
 import {
   Settings,
   Shield,
@@ -80,6 +80,26 @@ export const ElectionSettingsTab: React.FC<ElectionSettingsTabProps> = ({
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
       setFormData((prev) => ({ ...prev, logoUrl: base64 }));
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleBackgroundFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (PNG, JPG, SVG, or WebP).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setFormData((prev) => ({
+        ...prev,
+        customBackgroundUrl: base64,
+        backgroundTheme: 'default',
+      }));
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -210,8 +230,8 @@ export const ElectionSettingsTab: React.FC<ElectionSettingsTabProps> = ({
                 logoUrl={formData.logoUrl}
                 schoolName={formData.schoolName}
                 size="xl"
-                shape="shield"
-                showPlaceholderBadge={true}
+                shape="rounded"
+                showPlaceholderBadge={false}
               />
               <p className="text-3xs font-semibold text-slate-500 mt-2">
                 {formData.logoUrl ? 'Live Logo Preview' : 'Official Crest Placeholder'}
@@ -280,6 +300,186 @@ export const ElectionSettingsTab: React.FC<ElectionSettingsTabProps> = ({
                   Shown in kiosk header, student login, and certified reports
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Voting Booth & Portal Background Appearance Card */}
+        <div id="background-settings-card" className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-5">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-indigo-600" />
+              <span>Voting Booth & Portal Background Appearance</span>
+            </h4>
+            <span
+              id="background-status-tag"
+              className={`text-3xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                formData.customBackgroundUrl
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              }`}
+            >
+              {formData.customBackgroundUrl
+                ? 'Custom Wallpaper Active'
+                : formData.backgroundTheme === 'minimal'
+                ? 'Minimalist Mode'
+                : formData.backgroundTheme === 'chamber'
+                ? 'Boardroom Chamber'
+                : formData.backgroundTheme === 'auditorium'
+                ? 'Grand Auditorium'
+                : 'Architectural Pavilion (Default)'}
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Configure the aesthetic backdrop for the student voting booth, admin portal, and live observer screens. You can select an architectural preset or upload a custom school campus or hall photo.
+          </p>
+
+          {/* Theme Presets Grid */}
+          <div>
+            <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-2">
+              Background Theme Presets
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                {
+                  id: 'warm_pavilion',
+                  title: 'Warm Civic Pavilion',
+                  desc: 'Modern timber slats, glass pavilion & golden sunlight (Default)',
+                },
+                {
+                  id: 'chamber',
+                  title: 'Executive Boardroom',
+                  desc: 'Rich mahogany council paneling & classical columns',
+                },
+                {
+                  id: 'auditorium',
+                  title: 'Grand Auditorium',
+                  desc: 'Civic amphitheater, tiered seating & ceremony spotlight',
+                },
+                {
+                  id: 'minimal',
+                  title: 'Minimalist Clean',
+                  desc: 'Subtle democratic vector watermarks without photographic wallpaper',
+                },
+              ].map((themeItem) => {
+                const isSelected =
+                  !formData.customBackgroundUrl &&
+                  (formData.backgroundTheme === themeItem.id ||
+                    (!formData.backgroundTheme && themeItem.id === 'warm_pavilion'));
+                return (
+                  <button
+                    key={themeItem.id}
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        customBackgroundUrl: '',
+                        backgroundTheme: themeItem.id as BackgroundThemeOption,
+                      });
+                    }}
+                    className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-500/20 text-indigo-950'
+                        : 'border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100/70 text-slate-800'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold">{themeItem.title}</span>
+                        {isSelected && (
+                          <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                        )}
+                      </div>
+                      <p className="text-3xs text-slate-500 line-clamp-2 leading-relaxed">
+                        {themeItem.desc}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Custom Background Image URL or Device File Upload */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3.5">
+            <div>
+              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-1">
+                Or Use Custom Wallpaper Image URL
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={formData.customBackgroundUrl || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      customBackgroundUrl: e.target.value,
+                      backgroundTheme: 'default',
+                    })
+                  }
+                  placeholder="https://example.edu/campus-hall.jpg or data:image/..."
+                  className="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-hidden bg-white"
+                />
+                {formData.customBackgroundUrl && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        customBackgroundUrl: '',
+                        backgroundTheme: 'warm_pavilion',
+                      })
+                    }
+                    className="px-3 py-2 rounded-xl border border-slate-200 hover:bg-rose-50 text-rose-600 text-xs font-bold transition-colors cursor-pointer"
+                    title="Clear custom wallpaper"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <p className="text-2xs text-slate-500 mt-1">
+                Enter an image URL or upload an image file below to replace the default background across the voting booth and portals.
+              </p>
+            </div>
+
+            {/* Upload File from Device */}
+            <div>
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-1">
+                Upload Custom Wallpaper File
+              </span>
+              <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/50 hover:bg-indigo-50 rounded-xl cursor-pointer transition-colors text-indigo-700 text-xs font-semibold">
+                <Upload className="w-4 h-4 text-indigo-600" />
+                <span>Choose wallpaper from device (JPG, PNG, WebP)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBackgroundFileUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Reset to Default Button */}
+            <div className="pt-1 flex items-center justify-between gap-2 flex-wrap">
+              <button
+                type="button"
+                id="reset-to-default-background-btn"
+                onClick={() =>
+                  setFormData({
+                    ...formData,
+                    customBackgroundUrl: '',
+                    backgroundTheme: 'warm_pavilion',
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Reset to Default Architectural Pavilion</span>
+              </button>
+              <span className="text-2xs text-slate-400 italic">
+                Saved with your election configuration
+              </span>
             </div>
           </div>
         </div>

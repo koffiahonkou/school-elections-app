@@ -84,13 +84,13 @@ export const VoterResultsLoginModal: React.FC<VoterResultsLoginModalProps> = ({
   return (
     <div
       id="voter-results-modal-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-14 pb-8 px-4 bg-slate-900/70 backdrop-blur-xs overflow-y-auto"
       role="dialog"
       aria-modal="true"
     >
       <div
         id="voter-results-modal-card"
-        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 my-8 animate-in fade-in zoom-in-95 duration-150 transition-colors"
+        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 mb-8 animate-in fade-in slide-in-from-top-4 duration-150 transition-colors"
       >
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
@@ -99,7 +99,7 @@ export const VoterResultsLoginModal: React.FC<VoterResultsLoginModalProps> = ({
               logoUrl={config.logoUrl}
               schoolName={config.schoolName}
               size="md"
-              shape="shield"
+              shape="rounded"
               className="shrink-0"
             />
             <div>

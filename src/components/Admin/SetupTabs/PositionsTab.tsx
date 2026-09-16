@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Candidate, Position } from '../../../types';
+import { Candidate, Position, UserAccount } from '../../../types';
 import {
   Plus,
   ArrowUp,
@@ -11,6 +11,7 @@ import {
   Users,
   Check,
   X,
+  Lock,
 } from 'lucide-react';
 import { ConfirmModal } from '../../Common/ConfirmModal';
 
@@ -18,6 +19,7 @@ interface PositionsTabProps {
   positions: Position[];
   candidates: Candidate[];
   isLocked: boolean;
+  currentUser?: UserAccount | null;
   onUpdatePositions: (positions: Position[]) => void;
   onDeletePosition: (positionId: string) => void;
   onUnlockRequest?: () => void;
@@ -27,10 +29,14 @@ export const PositionsTab: React.FC<PositionsTabProps> = ({
   positions,
   candidates,
   isLocked,
+  currentUser,
   onUpdatePositions,
   onDeletePosition,
   onUnlockRequest,
 }) => {
+  const isDeveloper = currentUser?.role === 'Developer';
+  const canEdit = isDeveloper && !isLocked;
+
   const [isAdding, setIsAdding] = useState(false);
   const [editingPosId, setEditingPosId] = useState<string | null>(null);
 
@@ -42,6 +48,7 @@ export const PositionsTab: React.FC<PositionsTabProps> = ({
   const sortedPositions = [...positions].sort((a, b) => a.order - b.order);
 
   const handleStartAdd = () => {
+    if (!canEdit) return;
     setTitle('');
     setDescription('');
     setEditingPosId(null);
@@ -49,6 +56,7 @@ export const PositionsTab: React.FC<PositionsTabProps> = ({
   };
 
   const handleStartEdit = (pos: Position) => {
+    if (!canEdit) return;
     setTitle(pos.title);
     setDescription(pos.description);
     setEditingPosId(pos.id);
@@ -57,7 +65,7 @@ export const PositionsTab: React.FC<PositionsTabProps> = ({
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!canEdit || !title.trim()) return;
 
     if (editingPosId) {
       // Edit
@@ -84,7 +92,7 @@ export const PositionsTab: React.FC<PositionsTabProps> = ({
   };
 
   const movePosition = (index: number, direction: 'up' | 'down') => {
-    if (isLocked) return;
+    if (!canEdit) return;
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= sortedPositions.length) return;
 
@@ -118,7 +126,7 @@ export const PositionsTab: React.FC<PositionsTabProps> = ({
           </p>
         </div>
 
-        {!isAdding && !isLocked && (
+        {!isAdding && canEdit && (
           <button
             id="add-position-btn"
             type="button"
@@ -129,10 +137,37 @@ export const PositionsTab: React.FC<PositionsTabProps> = ({
             <span>Add Position</span>
           </button>
         )}
+
+        {!isAdding && !isDeveloper && (
+          <div
+            id="developer-positions-restricted-badge"
+            className="px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs font-semibold flex items-center gap-1.5 self-start sm:self-auto"
+            title="Restricted strictly to Developer account"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>Developer Account Only (Read-Only)</span>
+          </div>
+        )}
       </div>
 
+      {/* Developer Restriction Notice for Non-Developer Accounts */}
+      {!isDeveloper && (
+        <div
+          id="developer-positions-policy-notice"
+          className="p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-200 flex items-start gap-3"
+        >
+          <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div className="text-xs">
+            <p className="font-bold">Positions Setup Restricted</p>
+            <p className="mt-0.5 text-amber-800 dark:text-amber-300">
+              Only the Developer account is authorized to add, edit, reorder, or delete ballot positions. Other accounts may review configured races in read-only mode.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Locked Notice */}
-      {isLocked && (
+      {isDeveloper && isLocked && (
         <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -262,7 +297,7 @@ export const PositionsTab: React.FC<PositionsTabProps> = ({
                 </div>
 
                 {/* Actions */}
-                {!isLocked && (
+                {canEdit && (
                   <div className="flex items-center gap-1 shrink-0">
                     {/* Move Up */}
                     <button

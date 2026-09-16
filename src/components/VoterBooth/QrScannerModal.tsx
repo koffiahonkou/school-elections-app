@@ -437,13 +437,13 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
   return (
     <div
       id="qr-scanner-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-6 sm:pt-10 pb-8 px-3 sm:px-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
     >
       <div
         id="qr-scanner-modal-card"
-        className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto flex flex-col max-h-[92vh]"
+        className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden mb-6 flex flex-col max-h-[92vh] animate-in fade-in slide-in-from-top-4 duration-150"
       >
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/50">

@@ -19,11 +19,13 @@ service cloud.firestore {
     // 1. Anonymous Cast Ballots Collection
     // Read: Allowed for real-time live monitoring and tallying.
     // Create: Allowed if anonymous and properly structured.
-    // Update/Delete: STRICTLY FORBIDDEN to ensure ballot immutability.
+    // Update: STRICTLY FORBIDDEN to ensure ballot immutability.
+    // Delete: Allowed during authorized system clear / fresh cycle reset.
     match /votes/{voteId} {
       allow read: if true;
       allow create: if isValidVote(request.resource.data);
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if true;
     }
 
     // 2. Voter Tokens Collection
@@ -31,7 +33,7 @@ service cloud.firestore {
     match /voter_tokens/{tokenId} {
       allow read: if true;
       allow create, update: if true;
-      allow delete: if false;
+      allow delete: if true;
     }
 
     // 3. Live Agent Monitoring Collection

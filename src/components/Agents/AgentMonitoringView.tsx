@@ -407,7 +407,7 @@ export const AgentMonitoringView: React.FC<AgentMonitoringViewProps> = ({
   const tokenTurnoutPct = tokensTotal > 0 ? Math.round((tokensUsed / tokensTotal) * 100) : 0;
 
   return (
-    <div id="agent-monitoring-portal" className="min-h-[calc(100vh-5rem)] bg-slate-100/70 dark:bg-slate-950 pb-16 transition-colors duration-200">
+    <div id="agent-monitoring-portal" className="min-h-[calc(100vh-5rem)] bg-slate-100/50 dark:bg-slate-950/65 backdrop-blur-[2px] pb-16 transition-colors duration-200">
       {/* Top Scrutiny Navigation Header */}
       <div className="bg-slate-900 text-white border-b border-slate-800 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
@@ -862,8 +862,8 @@ export const AgentMonitoringView: React.FC<AgentMonitoringViewProps> = ({
 
       {/* Agent Check-in Modal */}
       {showAgentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/70 backdrop-blur-xs pt-8 sm:pt-14 pb-8 px-4 overflow-y-auto animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl relative animate-in fade-in slide-in-from-top-4 duration-150">
             <button
               type="button"
               onClick={() => setShowAgentModal(false)}

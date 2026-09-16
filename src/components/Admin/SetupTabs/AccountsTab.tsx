@@ -52,8 +52,8 @@ export const PERMISSION_DEFINITIONS: Array<{
   },
   {
     key: 'canManageBallot',
-    label: 'Manage Ballot Races & Candidates',
-    description: 'Add, modify, reorder, or delete contested positions and registered aspirants',
+    label: 'Manage Ballot Races & Candidates (Developer Only)',
+    description: 'Add, modify, reorder, or delete contested positions and registered aspirants (Restricted strictly to Developer accounts by system policy)',
     category: 'Ballot Setup',
   },
   {
@@ -686,11 +686,11 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
       {accountForPermissions && draftPermissions && (
         <div
           id="permissions-editor-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-start justify-center pt-6 sm:pt-10 pb-8 px-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto"
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4 duration-150 max-h-[90vh] flex flex-col">
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-3">
@@ -835,11 +835,11 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
       {isCreateModalOpen && (
         <div
           id="create-account-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-start justify-center pt-6 sm:pt-10 pb-8 px-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto"
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-2xl bg-indigo-600 text-white">

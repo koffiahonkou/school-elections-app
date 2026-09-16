@@ -32,6 +32,7 @@ import { BallotView, clearBallotAutosave } from './components/VoterBooth/BallotV
 import { ReviewBallotModal } from './components/VoterBooth/ReviewBallotModal';
 import { VoteConfirmation } from './components/VoterBooth/VoteConfirmation';
 import { BoothBackground } from './components/VoterBooth/BoothBackground';
+import { PageBackground } from './components/Common/PageBackground';
 import { AdminAuthModal } from './components/Admin/AdminAuthModal';
 import { AdminDashboard } from './components/Admin/AdminDashboard';
 import { AgentMonitoringView } from './components/Agents/AgentMonitoringView';
@@ -923,7 +924,11 @@ export default function App() {
       <main className="flex-1">
         {/* 1. VOTING BOOTH VIEW */}
         {currentView === 'booth' && (
-          <BoothBackground variant={isVoteConfirmed ? 'confirmation' : !activeVoter ? 'login' : 'ballot'}>
+          <BoothBackground
+            variant={isVoteConfirmed ? 'confirmation' : !activeVoter ? 'login' : 'ballot'}
+            customImageUrl={data.config.customBackgroundUrl}
+            customTheme={data.config.backgroundTheme}
+          >
             {isVoteConfirmed ? (
               <VoteConfirmation
                 voterName={confirmedVoterName}
@@ -972,68 +977,86 @@ export default function App() {
 
         {/* 2. ASPIRANT AGENT LIVE MONITORING PIE CHARTS */}
         {currentView === 'agents' && (
-          <AgentMonitoringView
-            config={data.config}
-            status={status}
-            positions={data.positions}
-            candidates={data.candidates}
-            ballots={data.ballots}
-            voters={data.voters}
-            onReturnToBooth={() => setCurrentView('booth')}
-          />
+          <PageBackground
+            theme="agents"
+            customImageUrl={data.config.customBackgroundUrl}
+            customTheme={data.config.backgroundTheme}
+          >
+            <AgentMonitoringView
+              config={data.config}
+              status={status}
+              positions={data.positions}
+              candidates={data.candidates}
+              ballots={data.ballots}
+              voters={data.voters}
+              onReturnToBooth={() => setCurrentView('booth')}
+            />
+          </PageBackground>
         )}
 
         {/* 3. ELECTORAL COMMISSION ADMIN PORTAL */}
         {currentView === 'admin' && (
-          <AdminDashboard
-            initialTab={adminActiveTab}
-            onTabChange={(tab) => setAdminActiveTab(tab)}
-            electionData={data}
-            status={status}
-            currentUser={currentUser}
-            onUpdateStatus={handleUpdateStatus}
-            onUpdateConfig={handleUpdateConfig}
-            onUpdatePositions={handleUpdatePositions}
-            onDeletePosition={handleDeletePosition}
-            onAddCandidate={handleAddCandidate}
-            onUpdateCandidate={handleUpdateCandidate}
-            onDeleteCandidate={handleDeleteCandidate}
-            onUpdateVoters={handleUpdateVoters}
-            onResetVoterStatus={handleResetVoterStatus}
-            onStartNewElection={handleStartNewElection}
-            onExportBackupJson={handleExportBackupJson}
-            onImportBackupJson={handleImportBackupJson}
-            onLoadDefaultDemo={handleLoadDefaultDemo}
-            onReturnToBooth={() => setCurrentView('booth')}
-            onAddAccount={handleAddAccount}
-            onUpdateAccount={handleUpdateAccount}
-            onDeleteAccount={handleDeleteAccount}
-            onSwitchUser={handleSwitchUser}
-          />
+          <PageBackground
+            theme="admin"
+            customImageUrl={data.config.customBackgroundUrl}
+            customTheme={data.config.backgroundTheme}
+          >
+            <AdminDashboard
+              initialTab={adminActiveTab}
+              onTabChange={(tab) => setAdminActiveTab(tab)}
+              electionData={data}
+              status={status}
+              currentUser={currentUser}
+              onUpdateStatus={handleUpdateStatus}
+              onUpdateConfig={handleUpdateConfig}
+              onUpdatePositions={handleUpdatePositions}
+              onDeletePosition={handleDeletePosition}
+              onAddCandidate={handleAddCandidate}
+              onUpdateCandidate={handleUpdateCandidate}
+              onDeleteCandidate={handleDeleteCandidate}
+              onUpdateVoters={handleUpdateVoters}
+              onResetVoterStatus={handleResetVoterStatus}
+              onStartNewElection={handleStartNewElection}
+              onExportBackupJson={handleExportBackupJson}
+              onImportBackupJson={handleImportBackupJson}
+              onLoadDefaultDemo={handleLoadDefaultDemo}
+              onReturnToBooth={() => setCurrentView('booth')}
+              onAddAccount={handleAddAccount}
+              onUpdateAccount={handleUpdateAccount}
+              onDeleteAccount={handleDeleteAccount}
+              onSwitchUser={handleSwitchUser}
+            />
+          </PageBackground>
         )}
 
         {/* 4. RESULTS & TURNOUT REPORT VIEW */}
         {currentView === 'results' && (
-          <ResultsDashboard
-            config={data.config}
-            status={status}
-            positions={data.positions}
-            candidates={data.candidates}
-            ballots={data.ballots}
-            voters={data.voters}
-            auditLogs={data.auditLogs}
-            isAdmin={isAdminAuthenticated}
-            authenticatedVoter={voterResultsViewer}
-            onExitVoterResults={() => {
-              setVoterResultsViewer(null);
-              setCurrentView('booth');
-              sounds.playSelect();
-            }}
-            onViewAuditTrail={handleRequestAuditTrailView}
-            onPublishToggle={() =>
-              handleUpdateStatus(status === 'Results Published' ? 'Closed' : 'Results Published')
-            }
-          />
+          <PageBackground
+            theme="results"
+            customImageUrl={data.config.customBackgroundUrl}
+            customTheme={data.config.backgroundTheme}
+          >
+            <ResultsDashboard
+              config={data.config}
+              status={status}
+              positions={data.positions}
+              candidates={data.candidates}
+              ballots={data.ballots}
+              voters={data.voters}
+              auditLogs={data.auditLogs}
+              isAdmin={isAdminAuthenticated}
+              currentUser={currentUser}
+              authenticatedVoter={voterResultsViewer}
+              onExitVoterResults={() => {
+                setVoterResultsViewer(null);
+                setCurrentView('booth');
+                sounds.playSelect();
+              }}
+              onPublishToggle={() =>
+                handleUpdateStatus(status === 'Results Published' ? 'Closed' : 'Results Published')
+              }
+            />
+          </PageBackground>
         )}
       </main>
 

@@ -34,13 +34,13 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   return (
     <div
       id="confirm-modal-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-14 pb-8 px-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto"
       role="dialog"
       aria-modal="true"
     >
       <div
         id="confirm-modal-box"
-        className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150 transition-colors"
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-4 duration-150 transition-colors"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">

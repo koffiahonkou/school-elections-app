@@ -7,6 +7,8 @@ import {
   ElectionStatus,
   Position,
   Voter,
+  UserAccount,
+  getUserPermissions,
 } from '../../types';
 import { calculateElectionTallies } from '../../utils/normalization';
 import { getCandidateColor, getCandidateInitials } from '../../utils/avatar';
@@ -26,7 +28,6 @@ import {
   Tv,
   LogOut,
   UserCheck,
-  History,
 } from 'lucide-react';
 
 interface ResultsDashboardProps {
@@ -38,10 +39,10 @@ interface ResultsDashboardProps {
   voters: Voter[];
   auditLogs?: AuditLogEntry[];
   isAdmin: boolean;
+  currentUser?: UserAccount | null;
   onPublishToggle?: () => void;
   authenticatedVoter?: Voter | null;
   onExitVoterResults?: () => void;
-  onViewAuditTrail?: () => void;
 }
 
 export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
@@ -53,12 +54,22 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   voters,
   auditLogs = [],
   isAdmin,
+  currentUser,
   onPublishToggle,
   authenticatedVoter,
   onExitVoterResults,
-  onViewAuditTrail,
 }) => {
   const [projectorMode, setProjectorMode] = useState(false);
+
+  // Determine role-based staff permissions
+  // Students must not see admin buttons (they should not be grayed out or shown)
+  // Only authenticated staff accounts with the assigned role can use them
+  const isStaffUser = Boolean(currentUser && !authenticatedVoter);
+  const permissions = isStaffUser ? getUserPermissions(currentUser) : null;
+
+  const canUseProjector = Boolean(isStaffUser && permissions?.canViewLiveTallies);
+  const canExportReports = Boolean(isStaffUser && permissions?.canExportReports);
+  const canPublishResults = Boolean(isStaffUser && permissions?.canChangePollStatus && onPublishToggle);
 
   // Compute tallies
   const report = calculateElectionTallies(positions, candidates, ballots, voters);
@@ -113,7 +124,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
     <div
       id="results-dashboard"
       className={`min-h-[calc(100vh-5rem)] py-8 px-4 sm:px-6 lg:px-8 transition-colors print:hidden ${
-        projectorMode ? 'bg-slate-950 text-white' : 'bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100'
+        projectorMode ? 'bg-slate-950 text-white' : 'bg-slate-50/40 dark:bg-slate-950/65 backdrop-blur-[2px] text-slate-900 dark:text-slate-100'
       }`}
     >
       <div className="max-w-6xl mx-auto space-y-8">
@@ -212,72 +223,70 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             </p>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 flex-wrap print:hidden">
-            {/* Projector Mode Toggle */}
-            <button
-              type="button"
-              onClick={() => setProjectorMode(!projectorMode)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-colors cursor-pointer ${
-                projectorMode
-                  ? 'bg-indigo-600 text-white border-indigo-500'
-                  : 'bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-            >
-              <Tv className="w-4 h-4" />
-              <span>{projectorMode ? 'Exit Projector Mode' : 'Projector Display'}</span>
-            </button>
+          {/* Action Buttons: strictly reserved for authorized staff accounts with assigned roles (never shown or grayed out for students) */}
+          {(canUseProjector || canExportReports || canPublishResults) && (
+            <div className="flex items-center gap-2 flex-wrap print:hidden">
+              {/* Projector Mode Toggle - staff with canViewLiveTallies */}
+              {canUseProjector && (
+                <button
+                  id="results-projector-btn"
+                  type="button"
+                  onClick={() => setProjectorMode(!projectorMode)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-colors cursor-pointer ${
+                    projectorMode
+                      ? 'bg-indigo-600 text-white border-indigo-500'
+                      : 'bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Tv className="w-4 h-4" />
+                  <span>{projectorMode ? 'Exit Projector Mode' : 'Projector Display'}</span>
+                </button>
+              )}
 
-            {/* Audit Trail & Legal Evidence Quick Button */}
-            {onViewAuditTrail && (
-              <button
-                id="results-audit-trail-btn"
-                type="button"
-                onClick={onViewAuditTrail}
-                className="px-3.5 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-300 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                title="Inspect Cryptographic Audit Trail (SHA-256 Chained Legal Ledger)"
-              >
-                <History className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span>Audit Trail &amp; Evidence</span>
-              </button>
-            )}
+              {/* CSV Export - staff with canExportReports */}
+              {canExportReports && (
+                <button
+                  id="results-export-csv-btn"
+                  type="button"
+                  onClick={handleExportCSV}
+                  className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-850 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                >
+                  <Download className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Export CSV</span>
+                </button>
+              )}
 
-            {/* CSV Export */}
-            <button
-              type="button"
-              onClick={handleExportCSV}
-              className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-850 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-            >
-              <Download className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <span>Export CSV</span>
-            </button>
+              {/* Printable Report - staff with canExportReports */}
+              {canExportReports && (
+                <button
+                  id="results-print-certificate-btn"
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print Official Certificate</span>
+                </button>
+              )}
 
-            {/* Printable Report */}
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Print Official Certificate</span>
-            </button>
-
-            {/* Publish Toggle if Admin */}
-            {isAdmin && onPublishToggle && (
-              <button
-                type="button"
-                onClick={onPublishToggle}
-                className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer ${
-                  isPublished
-                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                }`}
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>{isPublished ? 'Unpublish Results' : 'Publish to Students'}</span>
-              </button>
-            )}
-          </div>
+              {/* Publish Toggle - staff with canChangePollStatus */}
+              {canPublishResults && (
+                <button
+                  id="results-publish-toggle-btn"
+                  type="button"
+                  onClick={onPublishToggle}
+                  className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer ${
+                    isPublished
+                      ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>{isPublished ? 'Unpublish Results' : 'Publish to Students'}</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Visual Progress Tracker: Horizontal Timeline with Key Audit Timestamps */}

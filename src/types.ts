@@ -51,7 +51,7 @@ export function getUserPermissions(account: UserAccount | null | undefined): Rol
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   'Electoral Commissioner': {
     canConfigureElection: true,
-    canManageBallot: true,
+    canManageBallot: false, // Restricted strictly to Developer account
     canManageRoster: true,
     canChangePollStatus: true,
     canViewLiveTallies: true,
@@ -99,11 +99,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   },
 };
 
+export type BackgroundThemeOption = 'default' | 'warm_pavilion' | 'auditorium' | 'chamber' | 'minimal';
+
 export interface ElectionConfig {
   id: string;
   title: string;
   schoolName: string;
   logoUrl?: string; // School crest or logo URL (uses placeholder if omitted)
+  customBackgroundUrl?: string; // Custom image URL for booth and portal backgrounds
+  backgroundTheme?: BackgroundThemeOption; // Background aesthetic theme
   date: string;
   endDate?: string; // End date for countdown clock
   closingTime?: string; // HH:MM or ISO timestamp for countdown

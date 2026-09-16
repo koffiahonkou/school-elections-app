@@ -692,12 +692,12 @@ export const BallotView: React.FC<BallotViewProps> = ({
       {isWarningModalOpen && (
         <div
           id="session-inactivity-warning-modal"
-          className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-150"
+          className="fixed inset-0 z-[70] flex items-start justify-center pt-8 sm:pt-14 pb-8 px-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150"
           role="alertdialog"
           aria-modal="true"
           aria-labelledby="inactivity-warning-title"
         >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-amber-200 dark:border-amber-800 text-center space-y-5 animate-in zoom-in-95 duration-150">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-amber-200 dark:border-amber-800 text-center space-y-5 animate-in fade-in slide-in-from-top-4 duration-150">
             {/* Warning Icon Badge */}
             <div className="w-16 h-16 rounded-3xl bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto border border-amber-300 dark:border-amber-700 shadow-inner">
               <Clock className="w-8 h-8 animate-pulse" />

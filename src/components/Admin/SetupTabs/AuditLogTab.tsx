@@ -1153,12 +1153,12 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({
       {showLegalModal && (
         <div
           id="legal-attestation-modal-backdrop"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-start justify-center pt-6 sm:pt-10 pb-8 px-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto animate-fadeIn"
           onClick={() => setShowLegalModal(false)}
         >
           <div
             id="legal-attestation-modal"
-            className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-8"
+            className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden mb-8 animate-in fade-in slide-in-from-top-4 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}

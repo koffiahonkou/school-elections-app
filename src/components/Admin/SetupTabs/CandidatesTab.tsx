@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Candidate, Position } from '../../../types';
+import { Candidate, Position, UserAccount } from '../../../types';
 import { getCandidateColor, getCandidateInitials } from '../../../utils/avatar';
 import {
   Plus,
@@ -11,6 +11,7 @@ import {
   Check,
   Filter,
   Image as ImageIcon,
+  Lock,
 } from 'lucide-react';
 import { ConfirmModal } from '../../Common/ConfirmModal';
 
@@ -18,6 +19,7 @@ interface CandidatesTabProps {
   candidates: Candidate[];
   positions: Position[];
   isLocked: boolean;
+  currentUser?: UserAccount | null;
   onAddCandidate: (candidate: Candidate) => void;
   onUpdateCandidate: (candidate: Candidate) => void;
   onDeleteCandidate: (candidateId: string) => void;
@@ -28,11 +30,15 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({
   candidates,
   positions,
   isLocked,
+  currentUser,
   onAddCandidate,
   onUpdateCandidate,
   onDeleteCandidate,
   onUnlockRequest,
 }) => {
+  const isDeveloper = currentUser?.role === 'Developer';
+  const canEdit = isDeveloper && !isLocked;
+
   const [selectedPosFilter, setSelectedPosFilter] = useState<string>('ALL');
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,6 +58,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({
       : candidates.filter((c) => c.positionId === selectedPosFilter);
 
   const handleStartAdd = () => {
+    if (!canEdit) return;
     setName('');
     setSlogan('');
     setManifesto('');
@@ -62,6 +69,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({
   };
 
   const handleStartEdit = (cand: Candidate) => {
+    if (!canEdit) return;
     setName(cand.name);
     setSlogan(cand.slogan || '');
     setManifesto(cand.manifesto || '');
@@ -72,6 +80,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canEdit) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -113,7 +122,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !positionId) return;
+    if (!canEdit || !name.trim() || !positionId) return;
 
     if (editingId) {
       onUpdateCandidate({
@@ -174,7 +183,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({
             </select>
           </div>
 
-          {!isAdding && !isLocked && positions.length > 0 && (
+          {!isAdding && canEdit && positions.length > 0 && (
             <button
               id="add-candidate-btn"
               type="button"
@@ -185,8 +194,35 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({
               <span>Add Candidate</span>
             </button>
           )}
+
+          {!isAdding && !isDeveloper && (
+            <div
+              id="developer-candidates-restricted-badge"
+              className="px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs font-semibold flex items-center gap-1.5"
+              title="Restricted strictly to Developer account"
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>Developer Account Only (Read-Only)</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Developer Restriction Notice for Non-Developer Accounts */}
+      {!isDeveloper && (
+        <div
+          id="developer-candidates-policy-notice"
+          className="p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-200 flex items-start gap-3"
+        >
+          <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div className="text-xs">
+            <p className="font-bold">Candidates Setup Restricted</p>
+            <p className="mt-0.5 text-amber-800 dark:text-amber-300">
+              Only the Developer account is authorized to add, edit profile details, upload candidate photos, or delete candidates. Other accounts may review registered aspirants in read-only mode.
+            </p>
+          </div>
+        </div>
+      )}
 
       {positions.length === 0 && (
         <div className="p-6 text-center bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 text-sm">
@@ -391,7 +427,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({
                   </div>
                 </div>
 
-                {!isLocked && (
+                {canEdit && (
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"

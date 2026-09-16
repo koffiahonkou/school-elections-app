@@ -11,7 +11,6 @@ import {
   KeyRound,
   IdCard,
   AlertCircle,
-  Clock,
   ArrowRight,
   Sparkles,
   HelpCircle,
@@ -23,8 +22,6 @@ import {
   ScanLine,
   CheckCircle2,
   BarChart3,
-  ShieldCheck,
-  History,
 } from 'lucide-react';
 
 interface VoterLoginProps {
@@ -203,8 +200,8 @@ export const VoterLogin: React.FC<VoterLoginProps> = ({
             logoUrl={config.logoUrl}
             schoolName={config.schoolName}
             size="lg"
-            shape="shield"
-            showPlaceholderBadge={true}
+            shape="rounded"
+            showPlaceholderBadge={false}
             className="mb-2.5"
           />
           <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
@@ -300,35 +297,6 @@ export const VoterLogin: React.FC<VoterLoginProps> = ({
           </div>
         )}
 
-        {/* Polling Station Alert when closed or setup */}
-        {!isPollsOpen && status !== 'Results Published' && (
-          <div
-            id="polls-not-open-alert"
-            className="mb-6 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex items-start gap-3"
-          >
-            <Clock className="w-5 h-5 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-bold">
-                {status === 'Setup' ? 'Polls Are Not Open Yet' : 'Voting Has Concluded'}
-              </p>
-              <p className="mt-1 text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                {status === 'Setup'
-                  ? 'The administrator must click "Open Voting" in the Electoral Commission dashboard before students can log in.'
-                  : 'Ballot submissions are locked. Official results will be viewable once published by the Commission.'}
-              </p>
-              {status === 'Setup' && (
-                <button
-                  id="switch-to-admin-open-btn"
-                  type="button"
-                  onClick={onSwitchToAdmin}
-                  className="mt-3 text-xs font-bold text-amber-950 dark:text-amber-200 underline hover:text-amber-800 dark:hover:text-amber-100 block cursor-pointer"
-                >
-                  Go to Electoral Commission Setup &rarr;
-                </button>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Error Notification */}
         {errorMessage && (
@@ -530,35 +498,6 @@ export const VoterLogin: React.FC<VoterLoginProps> = ({
           </p>
         </div>
 
-        {/* Cryptographic Chain of Custody & Audit Trail Indicator */}
-        <div className="mt-3.5 p-3 bg-purple-50/80 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl flex items-center justify-between text-xs text-purple-950 dark:text-purple-200">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-            <div className="text-2xs">
-              <span className="font-bold">Cryptographic Audit Trail Active: </span>
-              <span className="text-purple-700 dark:text-purple-300">NIST SHA-256 Chained Ledger</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onSwitchToAdmin}
-            className="text-3xs font-bold text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 flex items-center gap-1 cursor-pointer hover:underline ml-2 shrink-0"
-          >
-            <History className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-            <span>Audit Trail</span>
-            <ArrowRight className="w-2.5 h-2.5" />
-          </button>
-        </div>
-
-        {/* Quick Sample IDs for demo/testing */}
-        {roster.length > 0 && (
-          <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 rounded-xl text-xs text-slate-600 dark:text-slate-400">
-            <span className="font-bold text-slate-700 dark:text-slate-300">Sample Registered IDs for testing: </span>
-            <span className="font-mono font-semibold text-amber-800 dark:text-amber-300">
-              {roster.slice(0, 3).map((v) => `${v.voterId}${config.requirePin ? ` (PIN: ${v.pin || 'None'})` : ''}`).join(', ')}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* QR Code / Student ID Card Scanner Modal */}

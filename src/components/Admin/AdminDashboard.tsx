@@ -141,7 +141,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       : Users;
 
   return (
-    <div id="admin-portal" className="min-h-[calc(100vh-5rem)] bg-slate-100/70 dark:bg-slate-950 pb-16 transition-colors duration-200">
+    <div id="admin-portal" className="min-h-[calc(100vh-5rem)] bg-slate-100/50 dark:bg-slate-950/65 backdrop-blur-[2px] pb-16 transition-colors duration-200">
       {/* Top Banner with Commission Controls & Active User Profile */}
       <div className="bg-slate-900 text-white border-b border-slate-800 shadow-md print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
@@ -279,15 +279,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* Main Admin Content Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        {/* Navigation Tabs Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-200 dark:border-slate-800 print:hidden scrollbar-thin">
+        {/* Navigation Tabs Bar - wraps to second line without horizontal scrollbar */}
+        <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800 print:hidden">
           <button
             id="tab-turnout"
             onClick={() => {
               setActiveTab('turnout');
               onTabChange?.('turnout');
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'turnout'
                 ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-800'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-slate-900/60'
@@ -303,7 +303,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               setActiveTab('audit');
               onTabChange?.('audit');
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'audit'
                 ? 'bg-purple-600 text-white shadow-xs border border-purple-500'
                 : 'text-purple-700 dark:text-purple-300 bg-purple-50/70 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800'
@@ -322,7 +322,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               setActiveTab('roster');
               onTabChange?.('roster');
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'roster'
                 ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-800'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-slate-900/60'
@@ -338,7 +338,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               setActiveTab('positions');
               onTabChange?.('positions');
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'positions'
                 ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-800'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-slate-900/60'
@@ -354,7 +354,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               setActiveTab('candidates');
               onTabChange?.('candidates');
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'candidates'
                 ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-800'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-slate-900/60'
@@ -370,7 +370,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               setActiveTab('agentCharts');
               onTabChange?.('agentCharts');
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'agentCharts'
                 ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-800'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-slate-900/60'
@@ -386,7 +386,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               setActiveTab('accounts');
               onTabChange?.('accounts');
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'accounts'
                 ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-800'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-slate-900/60'
@@ -402,7 +402,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               setActiveTab('settings');
               onTabChange?.('settings');
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'settings'
                 ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-800'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-slate-900/60'
@@ -488,6 +488,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               requirePin={electionData.config.requirePin}
               electionTitle={electionData.config.title}
               schoolName={electionData.config.schoolName}
+              currentUser={currentUser}
               onUpdateVoters={onUpdateVoters}
               onResetVoterStatus={onResetVoterStatus}
             />
