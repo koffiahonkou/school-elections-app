@@ -58,7 +58,7 @@ interface AdminDashboardProps {
   onDeleteCandidate: (candidateId: string) => void;
   onUpdateVoters: (voters: Voter[], logMessage: string) => void;
   onResetVoterStatus: (voterId: string) => void;
-  onStartNewElection: (clearRoster: boolean) => void;
+  onStartNewElection: (clearRoster: boolean, isFullSystemWipe?: boolean) => void;
   onExportBackupJson: () => void;
   onImportBackupJson?: (data: ElectionData) => void;
   onLoadDefaultDemo: () => void;
@@ -463,7 +463,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <PositionsTab
               positions={electionData.positions}
               candidates={electionData.candidates}
-              isLocked={isSetupLocked || !permissions.canManageBallot}
+              isLocked={isSetupLocked || currentUser?.role !== 'Developer'}
+              currentUser={currentUser}
               onUpdatePositions={onUpdatePositions}
               onDeletePosition={onDeletePosition}
               onUnlockRequest={() => setIsUnlockConfirm(true)}
@@ -474,7 +475,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <CandidatesTab
               candidates={electionData.candidates}
               positions={electionData.positions}
-              isLocked={isSetupLocked || !permissions.canManageBallot}
+              isLocked={isSetupLocked || currentUser?.role !== 'Developer'}
+              currentUser={currentUser}
               onAddCandidate={onAddCandidate}
               onUpdateCandidate={onUpdateCandidate}
               onDeleteCandidate={onDeleteCandidate}
@@ -498,6 +500,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="space-y-6">
               <ElectionSettingsTab
                 config={electionData.config}
+                status={status}
+                currentUser={currentUser}
+                onUpdateStatus={onUpdateStatus}
                 onSaveConfig={onUpdateConfig}
                 onStartNewElection={onStartNewElection}
                 onExportBackupJson={onExportBackupJson}

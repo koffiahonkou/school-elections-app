@@ -2,6 +2,7 @@ import {
   AuditLogEntry,
   ElectionConfig,
   ElectionData,
+  ElectionStatus,
 } from '../types';
 import {
   DEFAULT_USER_ACCOUNTS,
@@ -14,6 +15,27 @@ export { DEFAULT_USER_ACCOUNTS, getDefaultElectionData, createEmptyElectionData 
 const DB_NAME = 'SchoolElectionsDB_v1';
 const STORE_NAME = 'electionStore';
 const STORAGE_KEY = 'school_election_current_data';
+export const STATUS_STORAGE_KEY = 'school_election_status';
+
+export function saveStoredElectionStatus(status: ElectionStatus): void {
+  try {
+    localStorage.setItem(STATUS_STORAGE_KEY, status);
+  } catch (err) {
+    console.warn('Failed to save election status to localStorage:', err);
+  }
+}
+
+export function loadStoredElectionStatus(): ElectionStatus | null {
+  try {
+    const saved = localStorage.getItem(STATUS_STORAGE_KEY);
+    if (saved === 'Setup' || saved === 'Open' || saved === 'Closed' || saved === 'Results Published') {
+      return saved;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
 
 export function normalizeElectionData(raw: ElectionData): ElectionData {
   const defaultData = getDefaultElectionData();

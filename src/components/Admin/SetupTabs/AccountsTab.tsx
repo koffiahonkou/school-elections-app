@@ -182,6 +182,9 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
   // Toggle single permission in draft editor
   const handleToggleDraftPermission = (key: keyof RolePermissions) => {
     if (!draftPermissions) return;
+    if (key === 'canManageBallot' && accountForPermissions?.role !== 'Developer') {
+      return;
+    }
     setDraftPermissions({
       ...draftPermissions,
       [key]: !draftPermissions[key],
@@ -191,9 +194,13 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
   // Save Permissions to User Account
   const handleSavePermissions = () => {
     if (!accountForPermissions || !draftPermissions) return;
+    const finalPermissions = {
+      ...draftPermissions,
+      canManageBallot: accountForPermissions.role === 'Developer' ? draftPermissions.canManageBallot : false,
+    };
     onUpdateAccount({
       ...accountForPermissions,
-      permissions: { ...draftPermissions },
+      permissions: finalPermissions,
     });
     setAccountForPermissions(null);
     setDraftPermissions(null);
@@ -209,7 +216,7 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
     if (!draftPermissions) return;
     const allGranted: RolePermissions = {
       canConfigureElection: true,
-      canManageBallot: true,
+      canManageBallot: accountForPermissions?.role === 'Developer',
       canManageRoster: true,
       canChangePollStatus: true,
       canViewLiveTallies: true,
@@ -242,6 +249,10 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
   // Handle direct click in the User Permissions Matrix
   const handleToggleUserPermissionDirectly = (acc: UserAccount, key: keyof RolePermissions) => {
     if (!canManageAccounts) return;
+    if (key === 'canManageBallot' && acc.role !== 'Developer') {
+      // Ballot management is strictly reserved for the Developer role
+      return;
+    }
     const current = getUserPermissions(acc);
     const updated = {
       ...current,
@@ -762,15 +773,22 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
             {/* Interactive Permissions List */}
             <div className="overflow-y-auto py-4 space-y-3 flex-1 pr-1">
               {PERMISSION_DEFINITIONS.map((def) => {
-                const isChecked = draftPermissions[def.key];
+                const isRestricted = def.key === 'canManageBallot' && accountForPermissions?.role !== 'Developer';
+                const isChecked = isRestricted ? false : Boolean(draftPermissions[def.key]);
                 return (
                   <div
                     key={def.key}
-                    onClick={() => handleToggleDraftPermission(def.key)}
-                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
-                      isChecked
-                        ? 'bg-emerald-50/60 border-emerald-200 ring-1 ring-emerald-500/20'
-                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    onClick={() => {
+                      if (!isRestricted) {
+                        handleToggleDraftPermission(def.key);
+                      }
+                    }}
+                    className={`p-3.5 rounded-2xl border transition-all flex items-start justify-between gap-3 ${
+                      isRestricted
+                        ? 'bg-slate-50/70 border-slate-200 opacity-60 cursor-not-allowed'
+                        : isChecked
+                        ? 'bg-emerald-50/60 border-emerald-200 ring-1 ring-emerald-500/20 cursor-pointer'
+                        : 'bg-white border-slate-200 hover:bg-slate-50 cursor-pointer'
                     }`}
                   >
                     <div className="space-y-0.5">
@@ -779,6 +797,12 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
                         <span className="text-3xs font-extrabold uppercase tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
                           {def.category}
                         </span>
+                        {isRestricted && (
+                          <span className="text-3xs font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                            <Lock className="w-2.5 h-2.5" />
+                            Developer Only
+                          </span>
+                        )}
                       </div>
                       <p className="text-2xs text-slate-500 leading-relaxed">
                         {def.description}
@@ -788,12 +812,18 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
                     <div className="shrink-0 pt-0.5">
                       <div
                         className={`w-6 h-6 rounded-xl flex items-center justify-center transition-colors ${
-                          isChecked
+                          isRestricted
+                            ? 'bg-slate-100 text-slate-400 border border-slate-200'
+                            : isChecked
                             ? 'bg-emerald-600 text-white shadow-xs'
                             : 'bg-slate-100 text-slate-300 border border-slate-200'
                         }`}
                       >
-                        {isChecked && <Check className="w-4 h-4" />}
+                        {isRestricted ? (
+                          <Lock className="w-3 h-3 text-slate-400" />
+                        ) : isChecked ? (
+                          <Check className="w-4 h-4" />
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -975,25 +1005,36 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
 
                 {customPermsInCreate ? (
                   <div className="space-y-2 p-3 bg-slate-50 rounded-2xl border border-slate-200 max-h-48 overflow-y-auto">
-                    {PERMISSION_DEFINITIONS.map((def) => (
-                      <label
-                        key={def.key}
-                        className="flex items-center gap-2 text-2xs font-semibold text-slate-700 cursor-pointer hover:text-slate-900"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={createCustomPermissions[def.key]}
-                          onChange={(e) =>
-                            setCreateCustomPermissions({
-                              ...createCustomPermissions,
-                              [def.key]: e.target.checked,
-                            })
-                          }
-                          className="w-3.5 h-3.5 rounded text-indigo-600"
-                        />
-                        <span>{def.label}</span>
-                      </label>
-                    ))}
+                    {PERMISSION_DEFINITIONS.map((def) => {
+                      const isRestricted = def.key === 'canManageBallot' && role !== 'Developer';
+                      return (
+                        <label
+                          key={def.key}
+                          className={`flex items-center gap-2 text-2xs font-semibold text-slate-700 ${
+                            isRestricted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:text-slate-900'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            disabled={isRestricted}
+                            checked={isRestricted ? false : Boolean(createCustomPermissions[def.key])}
+                            onChange={(e) =>
+                              setCreateCustomPermissions({
+                                ...createCustomPermissions,
+                                [def.key]: isRestricted ? false : e.target.checked,
+                              })
+                            }
+                            className="w-3.5 h-3.5 rounded text-indigo-600"
+                          />
+                          <span>{def.label}</span>
+                          {isRestricted && (
+                            <span className="text-3xs text-amber-700 font-bold bg-amber-100 px-1.5 py-0.5 rounded-sm">
+                              Developer Only
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200">

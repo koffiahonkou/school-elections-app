@@ -46,8 +46,14 @@
       "documentIdPattern": "current",
       "fields": {
         "status": { "type": "string", "description": "Setup, Open, Paused, Closed, or Results Published", "required": true },
-        "totalEligibleVoters": { "type": "number", "description": "Count of registered voters", "required": true },
-        "lastUpdated": { "type": "string", "description": "ISO timestamp of last update", "required": true }
+        "totalEligibleVoters": { "type": "number", "description": "Count of registered voters", "required": false },
+        "lastUpdated": { "type": "string", "description": "ISO timestamp of last update", "required": true },
+        "updatedBy": { "type": "string", "description": "User or administrator who performed the update", "required": false },
+        "config": { "type": "map", "description": "Election configuration details", "required": false },
+        "positions": { "type": "array", "description": "Configured electoral positions", "required": false },
+        "candidates": { "type": "array", "description": "Nominated candidates list", "required": false },
+        "voters": { "type": "array", "description": "Voter roster list", "required": false },
+        "accounts": { "type": "array", "description": "Staff and user accounts", "required": false }
       }
     }
   }

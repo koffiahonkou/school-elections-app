@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ElectionConfig, ElectionData, BackgroundThemeOption } from '../../../types';
+import { ElectionConfig, ElectionData, BackgroundThemeOption, ElectionStatus, UserAccount } from '../../../types';
 import {
   Settings,
   Shield,
+  ShieldAlert,
   Clock,
   Eye,
   EyeOff,
@@ -12,8 +13,11 @@ import {
   Upload,
   AlertTriangle,
   Check,
+  CheckCircle2,
   Save,
   RotateCcw,
+  Lock,
+  RefreshCw,
   Image as ImageIcon,
 } from 'lucide-react';
 import { ConfirmModal } from '../../Common/ConfirmModal';
@@ -21,8 +25,11 @@ import { SchoolLogo } from '../../Common/SchoolLogo';
 
 interface ElectionSettingsTabProps {
   config: ElectionConfig;
+  status?: ElectionStatus;
+  currentUser?: UserAccount | null;
+  onUpdateStatus?: (newStatus: ElectionStatus) => void;
   onSaveConfig: (updated: ElectionConfig) => void;
-  onStartNewElection: (clearRoster: boolean) => void;
+  onStartNewElection: (clearRoster: boolean, isFullSystemWipe?: boolean) => void | Promise<void>;
   onExportBackupJson: () => void;
   onImportBackupJson?: (data: ElectionData) => void;
   onLoadDefaultDemo: () => void;
@@ -30,6 +37,9 @@ interface ElectionSettingsTabProps {
 
 export const ElectionSettingsTab: React.FC<ElectionSettingsTabProps> = ({
   config,
+  status = 'Setup',
+  currentUser,
+  onUpdateStatus,
   onSaveConfig,
   onStartNewElection,
   onExportBackupJson,
@@ -43,6 +53,13 @@ export const ElectionSettingsTab: React.FC<ElectionSettingsTabProps> = ({
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+
+  // Complete Post-Election System Wipe state
+  const [hasExportedBackup, setHasExportedBackup] = useState(false);
+  const [isFullWipeModalOpen, setIsFullWipeModalOpen] = useState(false);
+  const [wipeConfirmInput, setWipeConfirmInput] = useState('');
+  const [isPurging, setIsPurging] = useState(false);
+  const [purgeSuccess, setPurgeSuccess] = useState(false);
 
   const handleImportBackupFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -668,7 +685,10 @@ export const ElectionSettingsTab: React.FC<ElectionSettingsTabProps> = ({
           {/* Export Backup JSON */}
           <button
             type="button"
-            onClick={onExportBackupJson}
+            onClick={() => {
+              onExportBackupJson();
+              setHasExportedBackup(true);
+            }}
             className="px-4 py-2.5 rounded-xl bg-white border border-rose-300 hover:bg-rose-100/50 text-rose-900 font-bold text-xs flex items-center gap-2 shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="w-4 h-4 text-rose-600" />
@@ -710,6 +730,267 @@ export const ElectionSettingsTab: React.FC<ElectionSettingsTabProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Post-Election Full System Wipe & Fresh Selection Setup */}
+      <div className="bg-slate-900 text-white p-6 sm:p-7 rounded-3xl border border-slate-800 shadow-xl space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-base font-black tracking-tight text-white flex items-center gap-2">
+                <span>Post-Election Full System Wipe</span>
+                <span className="text-3xs font-extrabold uppercase px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                  Fresh Setup
+                </span>
+              </h4>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                Completely purge all election data (ballots, cast votes, positions, candidates, and voter rosters) across both local storage and cloud database once voting is concluded and an archive backup is downloaded.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {purgeSuccess && (
+          <div className="p-4 bg-emerald-950/60 border border-emerald-500/40 rounded-2xl flex items-center gap-3 text-emerald-200">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div className="text-xs">
+              <p className="font-bold">System Purged Successfully!</p>
+              <p className="text-emerald-300/80 mt-0.5">
+                All previous election data has been cleared. The system is reset to Setup mode with blank positions and candidates ready for a fresh setup cycle.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Prerequisites Checklist */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {/* Prerequisite 1: Voting is Closed */}
+          {(() => {
+            const isClosed = status === 'Closed' || status === 'Results Published';
+            return (
+              <div
+                className={`p-4 rounded-2xl border transition-all ${
+                  isClosed
+                    ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200'
+                    : 'bg-amber-950/20 border-amber-500/40 text-amber-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-3xs font-extrabold uppercase tracking-wider text-slate-400">
+                    Prerequisite 1
+                  </span>
+                  {isClosed ? (
+                    <span className="text-3xs font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Ready
+                    </span>
+                  ) : (
+                    <span className="text-3xs font-black uppercase px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> Required
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs font-bold text-white">Voting Must Be Closed</p>
+                <p className="text-2xs text-slate-400 mt-1 leading-relaxed">
+                  Current Status: <strong className="text-white">{status}</strong>.
+                  {!isClosed && ' Voting must be concluded prior to wiping data.'}
+                </p>
+                {!isClosed && onUpdateStatus && (
+                  <button
+                    type="button"
+                    onClick={() => onUpdateStatus('Closed')}
+                    className="mt-3 w-full py-1.5 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold text-2xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Clock className="w-3 h-3" />
+                    <span>Close Voting Now</span>
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Prerequisite 2: Backup Exported */}
+          <div
+            className={`p-4 rounded-2xl border transition-all ${
+              hasExportedBackup
+                ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200'
+                : 'bg-amber-950/20 border-amber-500/40 text-amber-200'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-3xs font-extrabold uppercase tracking-wider text-slate-400">
+                Prerequisite 2
+              </span>
+              {hasExportedBackup ? (
+                <span className="text-3xs font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Exported
+                </span>
+              ) : (
+                <span className="text-3xs font-black uppercase px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Required
+                </span>
+              )}
+            </div>
+            <p className="text-xs font-bold text-white">Archive Backup Downloaded</p>
+            <p className="text-2xs text-slate-400 mt-1 leading-relaxed">
+              {hasExportedBackup
+                ? 'Election results and audit log successfully exported.'
+                : 'Export an election archive file so past tally records are never lost.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                onExportBackupJson();
+                setHasExportedBackup(true);
+              }}
+              className="mt-3 w-full py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-2xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Download className="w-3 h-3" />
+              <span>{hasExportedBackup ? 'Re-export Backup JSON' : 'Export Backup JSON Now'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Clear System Action Button */}
+        {(() => {
+          const isClosed = status === 'Closed' || status === 'Results Published';
+          const canWipe = isClosed && hasExportedBackup;
+          return (
+            <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-slate-800">
+              <div className="text-xs text-slate-400">
+                {!canWipe ? (
+                  <span className="flex items-center gap-1.5 text-amber-400/90 font-medium">
+                    <Lock className="w-3.5 h-3.5 shrink-0" />
+                    Locked: Please ensure voting is closed and a backup archive is exported first.
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    Both safety prerequisites met. System is primed for clean wipe.
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                id="full-system-wipe-btn"
+                disabled={!canWipe}
+                onClick={() => {
+                  setWipeConfirmInput('');
+                  setIsFullWipeModalOpen(true);
+                }}
+                className={`px-5 py-2.5 rounded-2xl font-black text-xs flex items-center gap-2 transition-all cursor-pointer ${
+                  canWipe
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/30'
+                    : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                }`}
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Completely Clear System of All Data</span>
+              </button>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Full System Wipe Confirmation Modal */}
+      {isFullWipeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-6 bg-rose-600 text-white flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                <ShieldAlert className="w-6 h-6 text-white" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-black tracking-tight">
+                  Completely Clear All System Data?
+                </h3>
+                <p className="text-xs text-rose-100">
+                  This action is permanent and creates a completely blank canvas for a new election cycle.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 space-y-2">
+                <p className="text-xs font-bold text-rose-900 dark:text-rose-200">
+                  The following data will be completely deleted:
+                </p>
+                <ul className="text-2xs text-rose-800 dark:text-rose-300 space-y-1 list-disc list-inside">
+                  <li>All ballots and votes cast (locally and in cloud database)</li>
+                  <li>All ballot positions and registered candidates</li>
+                  <li>All registered student voters and generated 8-digit PINs</li>
+                  <li>All live polling statistics and temporary agent sessions</li>
+                </ul>
+                <p className="text-3xs text-rose-700 dark:text-rose-400 font-semibold pt-1">
+                  * Note: Administrator and Developer accounts are preserved so you remain logged in.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Type <span className="font-mono text-rose-600 dark:text-rose-400 font-black">CLEAR ALL</span> to confirm:
+                </label>
+                <input
+                  type="text"
+                  value={wipeConfirmInput}
+                  onChange={(e) => setWipeConfirmInput(e.target.value)}
+                  placeholder="CLEAR ALL"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs font-bold focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={isPurging}
+                onClick={() => setIsFullWipeModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={wipeConfirmInput.trim() !== 'CLEAR ALL' || isPurging}
+                onClick={async () => {
+                  setIsPurging(true);
+                  try {
+                    await onStartNewElection(true, true);
+                    setPurgeSuccess(true);
+                    setIsFullWipeModalOpen(false);
+                  } catch (err) {
+                    console.error('Error during full system wipe:', err);
+                  } finally {
+                    setIsPurging(false);
+                  }
+                }}
+                className={`px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+                  wipeConfirmInput.trim() === 'CLEAR ALL' && !isPurging
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-900/20'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                {isPurging ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Purging All Data...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Confirm & Purge Everything</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Start New Election Confirmation Modal */}
       <ConfirmModal

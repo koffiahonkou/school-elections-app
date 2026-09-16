@@ -25,7 +25,7 @@ try {
     const raw = fs.readFileSync(DATA_FILE, 'utf-8');
     const parsed = JSON.parse(raw);
     electionData = parsed.data || parsed;
-    electionStatus = parsed.status || (electionData.ballots.length > 0 ? 'Open' : 'Setup');
+    electionStatus = parsed.status || 'Open';
     console.log(`[Server] Loaded election data from disk: ${electionData.ballots.length} ballots recorded.`);
   } else {
     electionData = getDefaultElectionData();

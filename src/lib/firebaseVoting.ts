@@ -12,7 +12,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db, FIREBASE_PROJECT_ID, FIRESTORE_DB_ID } from './firebase';
-import { Ballot, Voter } from '../types';
+import { Ballot, Voter, ElectionData, ElectionStatus } from '../types';
 
 export { FIREBASE_PROJECT_ID, FIRESTORE_DB_ID };
 
@@ -280,10 +280,176 @@ export async function clearAllFirestoreElectionData(): Promise<{ success: boolea
         }
       }
     }
+
+    // Reset election metadata to fresh setup
+    try {
+      const metaRef = doc(db, 'election_metadata', 'current');
+      await setDoc(metaRef, {
+        status: 'Setup',
+        positions: [],
+        candidates: [],
+        voters: [],
+        totalEligibleVoters: 0,
+        lastUpdated: new Date().toISOString(),
+        updatedBy: 'System Clear',
+      });
+    } catch (metaErr) {
+      console.warn('[Firebase] Could not reset election_metadata document:', metaErr);
+    }
+
     return { success: true };
   } catch (error: any) {
     console.error('[Firebase] Failed to clear Firestore election data:', error);
     return { success: false, error: error?.message || String(error) };
   }
 }
+
+/**
+ * Safely sanitizes an object for Firestore by removing undefined values and circular references.
+ */
+function sanitizeForFirestore<T>(data: T): T {
+  return JSON.parse(JSON.stringify(data));
+}
+
+/**
+ * Saves or transitions election status (Setup, Open, Closed, Results Published) in Firestore.
+ * This guarantees any device or refreshed browser across Netlify / mobile immediately knows polls are Open.
+ */
+export async function saveElectionStatusToFirestore(
+  status: ElectionStatus,
+  updatedBy: string = 'Admin'
+): Promise<boolean> {
+  try {
+    const metaRef = doc(db, 'election_metadata', 'current');
+    await setDoc(
+      metaRef,
+      sanitizeForFirestore({
+        status,
+        lastUpdated: new Date().toISOString(),
+        updatedBy,
+      }),
+      { merge: true }
+    );
+    return true;
+  } catch (err) {
+    console.error('[Firebase] Failed to save election status to Firestore:', err);
+    return false;
+  }
+}
+
+/**
+ * Saves canonical election configuration, positions, candidates, and voter roster into Firestore.
+ * Allows other devices on Netlify to fetch the exact same configuration as the Commissioner.
+ */
+export async function saveElectionStateToFirestore(
+  data: Partial<ElectionData>,
+  status?: ElectionStatus,
+  updatedBy: string = 'Admin'
+): Promise<boolean> {
+  try {
+    const metaRef = doc(db, 'election_metadata', 'current');
+    const payload: Record<string, any> = {
+      lastUpdated: new Date().toISOString(),
+      updatedBy,
+    };
+
+    if (status) payload.status = status;
+    if (data.config) payload.config = data.config;
+    if (data.positions) payload.positions = data.positions;
+    if (data.candidates) payload.candidates = data.candidates;
+    if (data.voters) {
+      payload.voters = data.voters;
+      payload.totalEligibleVoters = data.voters.length;
+    }
+    if (data.accounts) payload.accounts = data.accounts;
+
+    await setDoc(metaRef, sanitizeForFirestore(payload), { merge: true });
+
+    // Also sync roster into voter_tokens collection for decentralized verification
+    if (data.voters && data.voters.length > 0) {
+      syncVoterRosterToFirestoreTokens(data.voters).catch((e) =>
+        console.warn('[Firebase] Background roster sync to tokens warning:', e)
+      );
+    }
+
+    return true;
+  } catch (err) {
+    console.error('[Firebase] Failed to save election state to Firestore:', err);
+    return false;
+  }
+}
+
+/**
+ * Reads canonical election metadata (status, config, positions, candidates, voters) from Firestore.
+ */
+export async function getElectionMetadataFromFirestore(): Promise<{
+  status?: ElectionStatus;
+  config?: any;
+  positions?: any[];
+  candidates?: any[];
+  voters?: any[];
+  accounts?: any[];
+  totalEligibleVoters?: number;
+  lastUpdated?: string;
+} | null> {
+  try {
+    const metaRef = doc(db, 'election_metadata', 'current');
+    const snap = await getDoc(metaRef);
+    if (snap.exists()) {
+      return snap.data() as any;
+    }
+    return null;
+  } catch (err) {
+    console.warn('[Firebase] Could not fetch election_metadata from Firestore:', err);
+    return null;
+  }
+}
+
+/**
+ * Real-time listener on the Firestore 'election_metadata/current' document.
+ * When status transitions from Setup -> Open on Commissioner's device,
+ * all voter booths on Netlify / other devices instantly receive the update.
+ */
+export function subscribeToElectionMetadata(
+  onMetadataUpdate: (metadata: {
+    status?: ElectionStatus;
+    config?: any;
+    positions?: any[];
+    candidates?: any[];
+    voters?: any[];
+    accounts?: any[];
+    lastUpdated?: string;
+  }) => void,
+  onError?: (err: Error) => void
+): Unsubscribe {
+  try {
+    const metaRef = doc(db, 'election_metadata', 'current');
+    return onSnapshot(
+      metaRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          onMetadataUpdate({
+            status: data.status,
+            config: data.config,
+            positions: data.positions,
+            candidates: data.candidates,
+            voters: data.voters,
+            accounts: data.accounts,
+            lastUpdated: data.lastUpdated,
+          });
+        }
+      },
+      (err) => {
+        console.warn('[Firebase] Firestore election metadata listener error:', err);
+        onError?.(err);
+      }
+    );
+  } catch (err: any) {
+    console.error('[Firebase] Error setting up election metadata listener:', err);
+    onError?.(err);
+    return () => {};
+  }
+}
+
 

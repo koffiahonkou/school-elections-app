@@ -22,6 +22,8 @@ import {
   saveElectionData,
   normalizeElectionData,
   downloadJSON,
+  saveStoredElectionStatus,
+  loadStoredElectionStatus,
 } from './utils/storage';
 import { createChainedAuditEntry } from './utils/cryptoAudit';
 import { sounds } from './utils/audio';
@@ -43,13 +45,24 @@ import {
   saveAnonymousVoteToFirestore,
   markVoterTokenUsedInFirestore,
   syncVoterRosterToFirestoreTokens,
+  clearAllFirestoreElectionData,
+  saveElectionStatusToFirestore,
+  saveElectionStateToFirestore,
+  getElectionMetadataFromFirestore,
+  subscribeToElectionMetadata,
+  subscribeToAnonymousVotes,
+  subscribeToVoterTokens,
 } from './lib/firebaseVoting';
 
 const ACTIVE_VOTER_SESSION_KEY = 'school_election_active_voter_session';
 
 export default function App() {
   const [data, setData] = useState<ElectionData | null>(null);
-  const [status, setStatus] = useState<ElectionStatus>('Setup');
+  const [status, setStatus] = useState<ElectionStatus>(() => {
+    const saved = loadStoredElectionStatus();
+    return saved || 'Open';
+  });
+  const [isStatusChecked, setIsStatusChecked] = useState(false);
   const [currentView, setCurrentView] = useState<'booth' | 'admin' | 'results' | 'agents'>('booth');
   const [isPractice, setIsPractice] = useState(false);
 
@@ -123,72 +136,196 @@ export default function App() {
     }
   }, [status, voterResultsViewer, currentView, isAdminAuthenticated]);
 
-  // 1. Initial Data Loading & Real-Time Syncing (Online Concurrent Voting)
+  // 1. Initial Data Loading & Real-Time Syncing (Online Concurrent Voting across Netlify & devices)
   useEffect(() => {
     let isMounted = true;
 
-    // Load from online server first, fallback to IndexedDB
+    // Load from online server & Firestore first, fallback to IndexedDB
     const initializeData = async () => {
-      let resolved = false;
+      let resolvedData = false;
 
-      // Safety timeout: Ensure the app renders within 2 seconds even if IndexedDB is slow or blocked
+      // Safety timeout: Ensure the app renders within 2.5 seconds even if storage or networks are slow
       const safetyTimeout = setTimeout(() => {
-        if (!resolved && isMounted) {
-          resolved = true;
-          console.warn('Initial storage load timed out, rendering with default election data');
-          setData((prev) => prev || getDefaultElectionData());
-          setStatus('Setup');
+        if (isMounted) {
+          if (!resolvedData) {
+            console.warn('Initial storage load timed out, rendering with cached/default election data');
+            setData((prev) => prev || getDefaultElectionData());
+          }
+          setIsStatusChecked(true);
         }
-      }, 2000);
+      }, 2500);
 
+      // 1. PRIORITIZE WAITING FOR FIREBASE 'ElectionStatus' CHECK
+      // Strictly eliminates transient 'closed' or 'setup' state flashes during page refresh
+      let cloudStatusVerified = false;
       try {
-        const response = await fetch('/api/election');
-        const contentType = response.headers.get('content-type');
-        if (response.ok && contentType && contentType.includes('application/json')) {
-          const json = await response.json();
-          if (json.success && json.data && isMounted) {
-            resolved = true;
-            clearTimeout(safetyTimeout);
-            setData(json.data);
-            if (json.status) {
-              setStatus(json.status);
+        const timeoutPromise = new Promise<null>((res) => setTimeout(() => res(null), 2500));
+        const cloudMeta = await Promise.race([getElectionMetadataFromFirestore(), timeoutPromise]);
+
+        if (cloudMeta && isMounted) {
+          if (cloudMeta.status) {
+            setStatus(cloudMeta.status);
+            saveStoredElectionStatus(cloudMeta.status);
+            cloudStatusVerified = true;
+          }
+          if (cloudMeta.positions && cloudMeta.positions.length > 0) {
+            const fallback = getDefaultElectionData();
+            const cloudData: ElectionData = {
+              config: cloudMeta.config ? { ...fallback.config, ...cloudMeta.config } : fallback.config,
+              positions: cloudMeta.positions || fallback.positions,
+              candidates: cloudMeta.candidates || fallback.candidates,
+              voters: cloudMeta.voters || fallback.voters,
+              ballots: [],
+              auditLogs: fallback.auditLogs,
+              accounts: (cloudMeta.accounts && cloudMeta.accounts.length > 0) ? cloudMeta.accounts : fallback.accounts,
+            };
+            setData(cloudData);
+            saveElectionData(cloudData).catch(() => {});
+            resolvedData = true;
+          }
+        }
+      } catch (cloudErr) {
+        console.warn('[Firebase] Could not fetch initial cloud election metadata:', cloudErr);
+      } finally {
+        if (isMounted) {
+          setIsStatusChecked(true);
+        }
+      }
+
+      // 2. Fetch from online Express server (if running in full-stack Node container)
+      if (!resolvedData && isMounted) {
+        try {
+          const response = await fetch('/api/election');
+          const contentType = response.headers.get('content-type');
+          if (response.ok && contentType && contentType.includes('application/json')) {
+            const json = await response.json();
+            if (json.success && json.data && isMounted) {
+              resolvedData = true;
+              setData(json.data);
+              if (!cloudStatusVerified && json.status) {
+                setStatus(json.status);
+                saveStoredElectionStatus(json.status);
+              }
+              saveElectionData(json.data).catch(() => {});
             }
-            saveElectionData(json.data).catch(() => {});
-            return;
           }
+        } catch (err) {
+          console.warn('Could not load from /api/election server, falling back to local DB:', err);
         }
-      } catch (err) {
-        console.warn('Could not load from /api/election server, falling back to local DB:', err);
       }
 
-      // Fallback to IndexedDB / localStorage
-      try {
-        const loaded = await loadElectionData();
-        if (isMounted && !resolved) {
-          resolved = true;
-          clearTimeout(safetyTimeout);
-          setData(loaded);
-          if (loaded.ballots.length > 0) {
-            setStatus('Open');
-          } else {
-            setStatus('Setup');
+      // 3. Fallback to IndexedDB / localStorage
+      if (!resolvedData && isMounted) {
+        try {
+          const loaded = await loadElectionData();
+          if (isMounted) {
+            resolvedData = true;
+            setData(loaded);
+            if (!cloudStatusVerified) {
+              const savedStatus = loadStoredElectionStatus();
+              if (savedStatus) {
+                setStatus(savedStatus);
+              } else if (loaded.ballots.length > 0) {
+                setStatus('Open');
+              } else {
+                setStatus('Open');
+              }
+            }
+          }
+        } catch (fallbackErr) {
+          console.error('Failed to load local election data:', fallbackErr);
+          if (isMounted) {
+            resolvedData = true;
+            const fallback = getDefaultElectionData();
+            setData(fallback);
+            if (!cloudStatusVerified) {
+              const savedStatus = loadStoredElectionStatus();
+              setStatus(savedStatus || 'Open');
+            }
           }
         }
-      } catch (fallbackErr) {
-        console.error('Failed to load local election data:', fallbackErr);
-        if (isMounted && !resolved) {
-          resolved = true;
-          clearTimeout(safetyTimeout);
-          const fallback = getDefaultElectionData();
-          setData(fallback);
-          setStatus('Open');
-        }
       }
+
+      clearTimeout(safetyTimeout);
     };
 
     initializeData();
 
-    // Periodic live sync every 2.5s for concurrent online votes
+    // Real-time Firestore metadata listener:
+    // When Commissioner on Device 1 opens voting or updates positions/candidates/roster,
+    // all devices on Netlify / mobile instantly receive the update without page refresh!
+    const unsubscribeMeta = subscribeToElectionMetadata((meta) => {
+      if (!isMounted) return;
+      if (meta.status) {
+        setStatus(meta.status);
+        saveStoredElectionStatus(meta.status);
+        setIsStatusChecked(true);
+      }
+      if (meta.positions && meta.candidates && meta.positions.length > 0) {
+        setData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            config: meta.config ? { ...prev.config, ...meta.config } : prev.config,
+            positions: meta.positions || prev.positions,
+            candidates: meta.candidates || prev.candidates,
+            voters: meta.voters || prev.voters,
+            accounts: (meta.accounts && meta.accounts.length > 0) ? meta.accounts : prev.accounts,
+          };
+        });
+      }
+    });
+
+    // Real-time Firestore anonymous votes listener:
+    // Synchronizes anonymous ballots cast from any device in real-time.
+    const unsubscribeVotes = subscribeToAnonymousVotes((liveBallots) => {
+      if (!isMounted) return;
+      setData((prev) => {
+        if (!prev) return prev;
+        const currentBallotMap = new Map(prev.ballots.map((b) => [b.id, b]));
+        let hasNew = false;
+        liveBallots.forEach((b) => {
+          if (!currentBallotMap.has(b.id)) {
+            currentBallotMap.set(b.id, b);
+            hasNew = true;
+          }
+        });
+        if (!hasNew && liveBallots.length === prev.ballots.length) return prev;
+        return {
+          ...prev,
+          ballots: Array.from(currentBallotMap.values()),
+        };
+      });
+    });
+
+    // Real-time Firestore voter tokens listener:
+    // Synchronizes the hasVoted status for students across all devices.
+    const unsubscribeTokens = subscribeToVoterTokens((tokens) => {
+      if (!isMounted) return;
+      setData((prev) => {
+        if (!prev) return prev;
+        const votedMap = new Map<string, string | null>();
+        tokens.forEach((t) => {
+          if (t.hasVoted || t.status === 'used') {
+            votedMap.set(t.voterId.toUpperCase(), t.votedAt || new Date().toISOString());
+          }
+        });
+        if (votedMap.size === 0) return prev;
+        let changed = false;
+        const updatedVoters = prev.voters.map((v) => {
+          const votedAt = votedMap.get(v.voterId.toUpperCase());
+          if (votedAt && !v.hasVoted) {
+            changed = true;
+            return { ...v, hasVoted: true, votedAt };
+          }
+          return v;
+        });
+        if (!changed) return prev;
+        return { ...prev, voters: updatedVoters };
+      });
+    });
+
+    // Periodic live sync every 3s for server endpoints (if online Express backend active)
     const syncInterval = setInterval(async () => {
       if (document.hidden) return;
       try {
@@ -197,28 +334,30 @@ export default function App() {
         if (res.ok && contentType && contentType.includes('application/json')) {
           const json = await res.json();
           if (json.success && json.data && isMounted) {
-            // Merge updated ballots, voters, and logs from server without disrupting voter's form entry
             setData((prev) => {
               if (!prev) return json.data;
               return {
                 ...json.data,
-                // keep local config if modified locally recently
                 config: json.data.config || prev.config,
               };
             });
             if (json.status) {
               setStatus(json.status);
+              saveStoredElectionStatus(json.status);
             }
           }
         }
       } catch {
         // silent catch on network hiccups
       }
-    }, 2500);
+    }, 3000);
 
     return () => {
       isMounted = false;
       clearInterval(syncInterval);
+      unsubscribeMeta();
+      unsubscribeVotes();
+      unsubscribeTokens();
     };
   }, []);
 
@@ -250,7 +389,7 @@ export default function App() {
     }
   }, [data, activeVoter]);
 
-  // Helper to persist state with audit log & online server sync
+  // Helper to persist state with audit log, local storage, online server sync, and Firestore cloud sync
   const persistElectionData = useCallback((updater: (prev: ElectionData) => ElectionData) => {
     setData((prev) => {
       if (!prev) return prev;
@@ -259,7 +398,14 @@ export default function App() {
         console.error('Error saving election data locally:', err)
       );
 
-      // Sync state update to server so all concurrent clients receive updates
+      // 1. Sync canonical state to Firestore so all devices on Netlify & mobile receive updates immediately
+      saveElectionStateToFirestore(
+        updated,
+        status,
+        currentUser ? currentUser.fullName || currentUser.username : 'Admin'
+      ).catch((err) => console.warn('[Firebase] Firestore election state sync warning:', err));
+
+      // 2. Sync state update to server so all concurrent clients on Node dev/server receive updates
       fetch('/api/election/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -268,7 +414,7 @@ export default function App() {
 
       return updated;
     });
-  }, []);
+  }, [currentUser, status]);
 
   // Log an audit event with SHA-256 cryptographic chain
   const logAuditEvent = useCallback(
@@ -335,6 +481,15 @@ export default function App() {
   // 2. Election Status Transitions
   const handleUpdateStatus = (newStatus: ElectionStatus) => {
     setStatus(newStatus);
+    saveStoredElectionStatus(newStatus);
+
+    // Persist status to Firestore so every device, browser, and Netlify instance updates instantly
+    saveElectionStatusToFirestore(
+      newStatus,
+      currentUser ? currentUser.fullName || currentUser.username : 'Electoral Commission Admin'
+    ).catch((err) => console.warn('[Firebase] Failed to persist election status to Firestore:', err));
+
+    // Also sync to Express backend (if available)
     fetch('/api/election/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -683,6 +838,10 @@ export default function App() {
   };
 
   const handleUpdatePositions = (positions: Position[]) => {
+    if (currentUser?.role !== 'Developer') {
+      console.warn('Unauthorized attempt to update positions by non-developer.');
+      return;
+    }
     persistElectionData((prev) => ({
       ...prev,
       positions,
@@ -691,6 +850,10 @@ export default function App() {
   };
 
   const handleDeletePosition = (positionId: string) => {
+    if (currentUser?.role !== 'Developer') {
+      console.warn('Unauthorized attempt to delete position by non-developer.');
+      return;
+    }
     persistElectionData((prev) => ({
       ...prev,
       positions: prev.positions.filter((p) => p.id !== positionId),
@@ -700,6 +863,10 @@ export default function App() {
   };
 
   const handleAddCandidate = (cand: Candidate) => {
+    if (currentUser?.role !== 'Developer') {
+      console.warn('Unauthorized attempt to add candidate by non-developer.');
+      return;
+    }
     persistElectionData((prev) => ({
       ...prev,
       candidates: [...prev.candidates, cand],
@@ -708,6 +875,10 @@ export default function App() {
   };
 
   const handleUpdateCandidate = (cand: Candidate) => {
+    if (currentUser?.role !== 'Developer') {
+      console.warn('Unauthorized attempt to update candidate by non-developer.');
+      return;
+    }
     persistElectionData((prev) => ({
       ...prev,
       candidates: prev.candidates.map((c) => (c.id === cand.id ? cand : c)),
@@ -716,6 +887,10 @@ export default function App() {
   };
 
   const handleDeleteCandidate = (candId: string) => {
+    if (currentUser?.role !== 'Developer') {
+      console.warn('Unauthorized attempt to delete candidate by non-developer.');
+      return;
+    }
     persistElectionData((prev) => ({
       ...prev,
       candidates: prev.candidates.filter((c) => c.id !== candId),
@@ -741,14 +916,27 @@ export default function App() {
     logAuditEvent('roster_modified', `Reset hasVoted status for student in roster.`, 'roster');
   };
 
-  const handleStartNewElection = (clearRoster: boolean) => {
+  const handleStartNewElection = async (clearRoster: boolean, isFullSystemWipe = false) => {
+    if (isFullSystemWipe) {
+      try {
+        await clearAllFirestoreElectionData();
+      } catch (err) {
+        console.error('Failed to clear firestore data:', err);
+      }
+    }
     const empty = createEmptyElectionData(
-      data?.config.title || 'New Student Election',
-      data?.config.schoolName || 'Our School'
+      isFullSystemWipe ? 'New Student Election' : (data?.config.title || 'New Student Election'),
+      isFullSystemWipe ? (data?.config.schoolName || 'Lincoln High School') : (data?.config.schoolName || 'Our School')
     );
-    if (!clearRoster && data?.voters) {
+    if (!clearRoster && !isFullSystemWipe && data?.voters) {
       // Keep roster but reset voted flags
       empty.voters = data.voters.map((v) => ({ ...v, hasVoted: false, votedAt: null }));
+    }
+    if (isFullSystemWipe) {
+      empty.positions = [];
+      empty.candidates = [];
+      empty.voters = [];
+      empty.ballots = [];
     }
     // Retain registered staff accounts across resets
     if (data?.accounts) {
@@ -756,8 +944,18 @@ export default function App() {
     }
     setData(empty);
     setStatus('Setup');
+    saveStoredElectionStatus('Setup');
+    saveElectionStatusToFirestore('Setup', currentUser?.fullName || 'Admin').catch(() => {});
+    saveElectionStateToFirestore(empty, 'Setup', currentUser?.fullName || 'Admin').catch(() => {});
     saveElectionData(empty);
     sounds.playSelect();
+    logAuditEvent(
+      'settings_updated',
+      isFullSystemWipe
+        ? 'Complete system data purge executed: All ballots, positions, candidates, and voter rosters cleared for fresh election cycle.'
+        : 'New election cycle initialized.',
+      'security'
+    );
   };
 
   // User Accounts & RBAC Handlers
@@ -847,16 +1045,24 @@ export default function App() {
       setCurrentUser(defaultData.accounts[0]);
     }
     setStatus('Setup');
+    saveStoredElectionStatus('Setup');
+    saveElectionStatusToFirestore('Setup', currentUser?.fullName || 'Admin').catch(() => {});
+    saveElectionStateToFirestore(defaultData, 'Setup', currentUser?.fullName || 'Admin').catch(() => {});
     saveElectionData(defaultData);
     sounds.playSuccess();
   };
 
-  if (!data) {
+  if (!data || !isStatusChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 font-bold text-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-          <span>Loading Election Station...</span>
+      <div
+        id="election-station-loading"
+        className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 font-bold text-sm transition-colors"
+      >
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-slate-600 dark:text-slate-400 font-semibold tracking-wide">
+            Verifying Election Status & Loading Booth...
+          </span>
         </div>
       </div>
     );
