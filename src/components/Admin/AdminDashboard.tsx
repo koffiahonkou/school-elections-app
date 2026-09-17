@@ -40,7 +40,9 @@ import {
   BadgeCheck,
   Terminal,
   Shield,
+  ShieldAlert,
   Clock,
+  LogOut,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -67,6 +69,7 @@ interface AdminDashboardProps {
   onUpdateAccount: (account: UserAccount) => void;
   onDeleteAccount: (accountId: string) => void;
   onSwitchUser: (account: UserAccount) => void;
+  onLogout?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -93,6 +96,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateAccount,
   onDeleteAccount,
   onSwitchUser,
+  onLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<
     | 'turnout'
@@ -114,12 +118,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Derive permissions for current logged in user (supports Developer-assigned custom permissions)
   const effectiveRole = currentUser?.role || 'Electoral Commissioner';
   const permissions = getUserPermissions(currentUser);
+  const isDeveloper = currentUser?.role === 'Developer';
+
+  // Only the developer account should be able to view "Staff Account & Roles" and "Settings & Clock"
+  React.useEffect(() => {
+    if (!isDeveloper && (activeTab === 'accounts' || activeTab === 'settings')) {
+      setActiveTab('turnout');
+    }
+  }, [isDeveloper, activeTab]);
 
   // Confirmation Modals
   const [isOpenPollsConfirm, setIsOpenPollsConfirm] = useState(false);
   const [isClosePollsConfirm, setIsClosePollsConfirm] = useState(false);
   const [isPublishConfirm, setIsPublishConfirm] = useState(false);
   const [isUnlockConfirm, setIsUnlockConfirm] = useState(false);
+  const [isLogoutConfirm, setIsLogoutConfirm] = useState(false);
 
   // Validation before opening voting
   const canOpenVoting =
@@ -156,12 +169,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     Electoral Commission Control Panel
                   </h2>
                   {/* Current Active Staff User Badge */}
-                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-2xs font-extrabold uppercase tracking-wider bg-slate-800 text-indigo-300 border border-slate-700">
-                    <RoleIcon className="w-3 h-3 text-indigo-400" />
-                    <span>
-                      {currentUser?.fullName || 'Electoral Commissioner'} ({effectiveRole})
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-2xs font-extrabold uppercase tracking-wider bg-slate-800 text-indigo-300 border border-slate-700">
+                      <RoleIcon className="w-3 h-3 text-indigo-400" />
+                      <span>
+                        {currentUser?.fullName || 'Electoral Commissioner'} ({effectiveRole})
+                      </span>
                     </span>
-                  </span>
+                    {onLogout && (
+                      <button
+                        id="admin-badge-logout-btn"
+                        type="button"
+                        onClick={() => setIsLogoutConfirm(true)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-3xs font-black uppercase tracking-wider bg-rose-950/60 hover:bg-rose-900 text-rose-300 hover:text-white border border-rose-800/70 transition-colors cursor-pointer"
+                        title="Log out from staff account"
+                      >
+                        <LogOut className="w-2.5 h-2.5" />
+                        <span>Logout</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {electionData.config.title} &bull; {electionData.config.schoolName}
@@ -272,6 +299,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Return to Booth</span>
               </button>
+
+              {/* Staff Logout button */}
+              {onLogout && (
+                <button
+                  id="admin-logout-btn"
+                  type="button"
+                  onClick={() => setIsLogoutConfirm(true)}
+                  className="px-3.5 py-2.5 rounded-xl bg-rose-600/90 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                  title={`Log out of staff account (${currentUser?.fullName || 'Staff'})`}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Logout</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -380,37 +421,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <span>Aspirant Agent Pie Charts</span>
           </button>
 
-          <button
-            id="tab-accounts"
-            onClick={() => {
-              setActiveTab('accounts');
-              onTabChange?.('accounts');
-            }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === 'accounts'
-                ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-800'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-slate-900/60'
-            }`}
-          >
-            <UserCog className="w-4 h-4 text-indigo-600" />
-            <span>Staff Accounts & Roles ({electionData.accounts?.length || 4})</span>
-          </button>
+          {isDeveloper && (
+            <button
+              id="tab-accounts"
+              onClick={() => {
+                setActiveTab('accounts');
+                onTabChange?.('accounts');
+              }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === 'accounts'
+                  ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-slate-900/60'
+              }`}
+            >
+              <UserCog className="w-4 h-4 text-indigo-600" />
+              <span>Staff Accounts & Roles ({electionData.accounts?.length || 4})</span>
+            </button>
+          )}
 
-          <button
-            id="tab-settings"
-            onClick={() => {
-              setActiveTab('settings');
-              onTabChange?.('settings');
-            }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === 'settings'
-                ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-800'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-slate-900/60'
-            }`}
-          >
-            <Settings className="w-4 h-4 text-slate-600" />
-            <span>Settings & Clock</span>
-          </button>
+          {isDeveloper && (
+            <button
+              id="tab-settings"
+              onClick={() => {
+                setActiveTab('settings');
+                onTabChange?.('settings');
+              }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === 'settings'
+                  ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-slate-900/60'
+              }`}
+            >
+              <Settings className="w-4 h-4 text-slate-600" />
+              <span>Settings & Clock</span>
+            </button>
+          )}
         </div>
 
         {/* Tab Content Panels */}
@@ -447,7 +492,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             />
           )}
 
-          {activeTab === 'accounts' && (
+          {activeTab === 'accounts' && isDeveloper && (
             <AccountsTab
               accounts={electionData.accounts || []}
               currentUser={currentUser}
@@ -456,7 +501,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onUpdateAccount={onUpdateAccount}
               onDeleteAccount={onDeleteAccount}
               onSwitchUser={onSwitchUser}
+              onLogout={onLogout}
             />
+          )}
+
+          {activeTab === 'accounts' && !isDeveloper && (
+            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-3 max-w-lg mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 flex items-center justify-center mx-auto text-amber-600 dark:text-amber-400">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Developer Access Restricted</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Only the developer account is authorized to view Staff Accounts &amp; Roles.
+              </p>
+            </div>
           )}
 
           {activeTab === 'positions' && (
@@ -496,7 +554,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             />
           )}
 
-          {activeTab === 'settings' && (
+          {activeTab === 'settings' && isDeveloper && (
             <div className="space-y-6">
               <ElectionSettingsTab
                 config={electionData.config}
@@ -525,6 +583,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   variant="card"
                 />
               </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && !isDeveloper && (
+            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-3 max-w-lg mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 flex items-center justify-center mx-auto text-amber-600 dark:text-amber-400">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Developer Access Restricted</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Only the developer account is authorized to view Settings &amp; Clock.
+              </p>
             </div>
           )}
 
@@ -602,6 +672,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           setActiveTab('positions');
         }}
         onCancel={() => setIsUnlockConfirm(false)}
+      />
+
+      {/* Staff Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isLogoutConfirm}
+        title="Log Out of Staff Account?"
+        message={`Are you sure you want to log out of your staff session (${currentUser?.fullName || 'Staff Member'} - ${effectiveRole})? This will lock administrative controls and return this station to the public Voter Booth.`}
+        confirmLabel="Yes, Log Out"
+        cancelLabel="Stay Logged In"
+        confirmVariant="danger"
+        onConfirm={() => {
+          setIsLogoutConfirm(false);
+          onLogout?.();
+        }}
+        onCancel={() => setIsLogoutConfirm(false)}
       />
     </div>
   );

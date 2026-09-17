@@ -5,6 +5,7 @@ import {
   updateDoc,
   getDocs,
   getDoc,
+  getDocFromCache,
   onSnapshot,
   query,
   orderBy,
@@ -173,12 +174,11 @@ export function subscribeToAnonymousVotes(
         onVotesUpdate(ballots);
       },
       (err) => {
-        console.warn('[Firebase] Firestore votes real-time listener error:', err);
+        // Soft fallback for offline/reconnecting states
         onError?.(err);
       }
     );
   } catch (err: any) {
-    console.error('[Firebase] Error setting up votes listener:', err);
     onError?.(err);
     return () => {};
   }
@@ -203,12 +203,11 @@ export function subscribeToVoterTokens(
         onTokensUpdate(tokens);
       },
       (err) => {
-        console.warn('[Firebase] Firestore voter tokens listener error:', err);
+        // Soft fallback for offline/reconnecting states
         onError?.(err);
       }
     );
   } catch (err: any) {
-    console.error('[Firebase] Error setting up voter tokens listener:', err);
     onError?.(err);
     return () => {};
   }
@@ -233,12 +232,11 @@ export function subscribeToAgentMonitoring(
         onAgentsUpdate(agents);
       },
       (err) => {
-        console.warn('[Firebase] Firestore agent monitoring listener error:', err);
+        // Soft fallback for offline/reconnecting states
         onError?.(err);
       }
     );
   } catch (err: any) {
-    console.error('[Firebase] Error setting up agent monitoring listener:', err);
     onError?.(err);
     return () => {};
   }
@@ -392,15 +390,23 @@ export async function getElectionMetadataFromFirestore(): Promise<{
   totalEligibleVoters?: number;
   lastUpdated?: string;
 } | null> {
+  const metaRef = doc(db, 'election_metadata', 'current');
   try {
-    const metaRef = doc(db, 'election_metadata', 'current');
     const snap = await getDoc(metaRef);
     if (snap.exists()) {
       return snap.data() as any;
     }
     return null;
-  } catch (err) {
-    console.warn('[Firebase] Could not fetch election_metadata from Firestore:', err);
+  } catch {
+    // If offline or network unavailable, seamlessly retrieve from local persistent cache
+    try {
+      const cacheSnap = await getDocFromCache(metaRef);
+      if (cacheSnap.exists()) {
+        return cacheSnap.data() as any;
+      }
+    } catch {
+      // Local cache empty or pending
+    }
     return null;
   }
 }
@@ -441,12 +447,11 @@ export function subscribeToElectionMetadata(
         }
       },
       (err) => {
-        console.warn('[Firebase] Firestore election metadata listener error:', err);
+        // Soft fallback for offline/reconnecting states
         onError?.(err);
       }
     );
   } catch (err: any) {
-    console.error('[Firebase] Error setting up election metadata listener:', err);
     onError?.(err);
     return () => {};
   }

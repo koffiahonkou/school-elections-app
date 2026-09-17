@@ -25,6 +25,7 @@ import {
   Square,
   ShieldAlert,
   Save,
+  LogOut,
 } from 'lucide-react';
 import { ConfirmModal } from '../../Common/ConfirmModal';
 
@@ -36,6 +37,7 @@ interface AccountsTabProps {
   onUpdateAccount: (account: UserAccount) => void;
   onDeleteAccount: (accountId: string) => void;
   onSwitchUser: (account: UserAccount) => void;
+  onLogout?: () => void;
 }
 
 export const PERMISSION_DEFINITIONS: Array<{
@@ -148,6 +150,7 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
   onUpdateAccount,
   onDeleteAccount,
   onSwitchUser,
+  onLogout,
 }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<UserAccount | null>(null);
@@ -305,6 +308,23 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
     setCreateCustomPermissions(ROLE_PERMISSIONS['Association President']);
     setIsCreateModalOpen(false);
   };
+
+  const isDeveloper = currentUser?.role === 'Developer';
+  if (!isDeveloper) {
+    return (
+      <div id="accounts-restricted-container" className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-4 max-w-xl mx-auto my-8">
+        <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/80 flex items-center justify-center mx-auto text-amber-600 dark:text-amber-400">
+          <ShieldAlert className="w-7 h-7" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Developer Account Required</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Only the developer account is authorized to view and manage Staff Accounts &amp; Roles.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -497,6 +517,19 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
                     >
                       <Sliders className="w-3.5 h-3.5 text-cyan-700" />
                       <span>Permissions</span>
+                    </button>
+                  )}
+
+                  {isMe && onLogout && (
+                    <button
+                      id="accounts-logout-staff-btn"
+                      type="button"
+                      onClick={onLogout}
+                      className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 border border-rose-200"
+                      title="Log out of your staff account"
+                    >
+                      <LogOut className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Logout</span>
                     </button>
                   )}
 

@@ -43,6 +43,7 @@ interface ResultsDashboardProps {
   onPublishToggle?: () => void;
   authenticatedVoter?: Voter | null;
   onExitVoterResults?: () => void;
+  onLogout?: () => void;
 }
 
 export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
@@ -58,6 +59,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   onPublishToggle,
   authenticatedVoter,
   onExitVoterResults,
+  onLogout,
 }) => {
   const [projectorMode, setProjectorMode] = useState(false);
 
@@ -283,6 +285,20 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>{isPublished ? 'Unpublish Results' : 'Publish to Students'}</span>
+                </button>
+              )}
+
+              {/* Staff Logout Button */}
+              {isStaffUser && onLogout && (
+                <button
+                  id="results-staff-logout-btn"
+                  type="button"
+                  onClick={onLogout}
+                  className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title={`Log out of staff account (${currentUser?.fullName || 'Staff'})`}
+                >
+                  <LogOut className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                  <span>Logout Staff</span>
                 </button>
               )}
             </div>

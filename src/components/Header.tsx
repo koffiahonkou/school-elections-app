@@ -266,22 +266,25 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
                 </nav>
 
-                {/* Staff User Badge & Lock Station / Sign Out button (Tablet & Desktop) */}
+                {/* Staff User Badge & Logout Option */}
                 <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200 dark:border-slate-800 shrink-0">
                   <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <UserCheck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span className="truncate max-w-[100px]">{currentUser?.fullName.split(' ')[0] || 'Official'}</span>
+                    <span className="truncate max-w-[100px]" title={currentUser ? `${currentUser.fullName} (${currentUser.role})` : 'Staff Member'}>
+                      {currentUser?.fullName.split(' ')[0] || 'Official'}
+                    </span>
                   </div>
                   {onLogoutAdmin && (
                     <button
-                      id="header-lock-terminal-btn"
+                      id="header-staff-logout-btn"
+                      data-testid="header-lock-terminal-btn"
                       onClick={onLogoutAdmin}
-                      title="Lock terminal back to Voter Booth"
-                      className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold"
-                      aria-label="Lock station to voter booth"
+                      title={`Log out of staff account (${currentUser?.fullName || 'Staff'})`}
+                      className="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold border border-slate-200 dark:border-slate-700"
+                      aria-label="Log out of staff account"
                     >
-                      <LogOut className="w-4 h-4" />
-                      <span className="hidden sm:inline text-2xs">Lock</span>
+                      <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                      <span>Logout</span>
                     </button>
                   )}
                 </div>

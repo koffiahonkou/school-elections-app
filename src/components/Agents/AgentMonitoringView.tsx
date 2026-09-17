@@ -38,6 +38,7 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  LogOut,
 } from 'lucide-react';
 import { ElectionClock } from '../Common/ElectionClock';
 import {
@@ -61,6 +62,7 @@ interface AgentMonitoringViewProps {
   ballots: Ballot[];
   voters: Voter[];
   onReturnToBooth?: () => void;
+  onLogout?: () => void;
 }
 
 // Distinct, balanced color palette for chart slices
@@ -101,6 +103,7 @@ export const AgentMonitoringView: React.FC<AgentMonitoringViewProps> = ({
   ballots: initialBallots,
   voters,
   onReturnToBooth,
+  onLogout,
 }) => {
   const [includeAbstainInChart, setIncludeAbstainInChart] = useState<boolean>(true);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<string>(
@@ -508,6 +511,19 @@ export const AgentMonitoringView: React.FC<AgentMonitoringViewProps> = ({
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Booth</span>
+                </button>
+              )}
+
+              {onLogout && (
+                <button
+                  id="agents-staff-logout-btn"
+                  type="button"
+                  onClick={onLogout}
+                  className="px-3 py-2 rounded-xl bg-rose-950/50 hover:bg-rose-900/70 text-rose-300 hover:text-white font-bold text-xs flex items-center gap-1.5 border border-rose-800/60 transition-colors cursor-pointer"
+                  title="Log out of staff account"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Logout</span>
                 </button>
               )}
             </div>

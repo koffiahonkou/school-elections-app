@@ -162,19 +162,6 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
     setError(null);
   };
 
-  const handleQuickLoginAs = (account: UserAccount) => {
-    if (account.twoFactorEnabled) {
-      sounds.playSelect();
-      setPendingAccount(account);
-      setStep('2fa');
-      setError(null);
-    } else {
-      sounds.playSuccess();
-      resetModalState();
-      onSuccess(account);
-    }
-  };
-
   return (
     <div
       id="admin-auth-modal"
@@ -276,7 +263,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                     <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-2xs space-y-1.5">
                       <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                         <span>Role: <strong className="text-slate-900 dark:text-white">{currentSelectedAccount.role}</strong></span>
-                        <span className="font-mono text-slate-500 dark:text-slate-400">PIN: {currentSelectedAccount.passwordPin}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Account: <strong className="text-slate-700 dark:text-slate-300 font-mono">@{currentSelectedAccount.username}</strong></span>
                       </div>
                       <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-700">
                         <span className="text-3xs uppercase font-bold text-slate-400">2FA Security Status:</span>
@@ -338,7 +325,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                     required
                   />
                   <p className="mt-1.5 text-2xs text-slate-400 text-center">
-                    Default Master PIN: <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded font-mono font-bold text-slate-700 dark:text-slate-300">admin123</code>
+                    Enter the authorized Master Commission Security PIN.
                   </p>
                 </div>
               )}
@@ -484,37 +471,6 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
               </button>
             </div>
           </form>
-        )}
-
-        {/* Quick Testing Evaluation Switcher */}
-        {accounts.length > 0 && (
-          <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <span className="text-3xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-2">
-              Quick Switch (Demo Evaluation)
-            </span>
-            <div className="grid grid-cols-2 gap-1.5">
-              {accounts.map((acc) => (
-                <button
-                  key={acc.id}
-                  type="button"
-                  onClick={() => handleQuickLoginAs(acc)}
-                  className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-indigo-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-200 text-left transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-800 dark:text-slate-200 text-2xs truncate">
-                      {acc.fullName.split(' ')[0]}
-                    </span>
-                    {acc.twoFactorEnabled && (
-                      <span className="text-3xs font-bold text-emerald-600 dark:text-emerald-400">2FA</span>
-                    )}
-                  </div>
-                  <span className="text-3xs font-medium text-indigo-600 dark:text-indigo-400 block truncate">
-                    {acc.role}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
         )}
       </div>
     </div>

@@ -129,6 +129,23 @@ export const ElectionSettingsTab: React.FC<ElectionSettingsTabProps> = ({
     setTimeout(() => setIsSavedNotice(false), 3000);
   };
 
+  const isDeveloper = currentUser?.role === 'Developer';
+  if (!isDeveloper) {
+    return (
+      <div id="settings-restricted-container" className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-4 max-w-xl mx-auto my-8">
+        <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/80 flex items-center justify-center mx-auto text-amber-600 dark:text-amber-400">
+          <ShieldAlert className="w-7 h-7" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Developer Account Required</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Only the developer account is authorized to view and manage Settings &amp; Clock.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}

@@ -799,7 +799,10 @@ export default function App() {
       | 'settings'
       | 'audit' = 'turnout'
   ) => {
-    setAdminActiveTab(targetTab);
+    const isDeveloper = currentUser?.role === 'Developer';
+    const isRestrictedTab = targetTab === 'accounts' || targetTab === 'settings';
+    const safeTab = isRestrictedTab && !isDeveloper ? 'turnout' : targetTab;
+    setAdminActiveTab(safeTab);
     if (isAdminAuthenticated) {
       setCurrentView('admin');
     } else {
@@ -813,16 +816,26 @@ export default function App() {
 
   const handleAdminAuthSuccess = (authenticatedAccount?: UserAccount) => {
     setIsAdminAuthenticated(true);
-    if (authenticatedAccount) {
-      setCurrentUser(authenticatedAccount);
-    } else if (!currentUser && data?.accounts && data.accounts.length > 0) {
-      setCurrentUser(data.accounts[0]);
+    const userToSet = authenticatedAccount || (!currentUser && data?.accounts && data.accounts.length > 0 ? data.accounts[0] : null);
+    if (userToSet) {
+      setCurrentUser(userToSet);
+    }
+    if (userToSet?.role !== 'Developer' && (adminActiveTab === 'accounts' || adminActiveTab === 'settings')) {
+      setAdminActiveTab('turnout');
     }
     setIsAdminAuthModalOpen(false);
     setCurrentView('admin');
   };
 
   const handleLogoutAdmin = () => {
+    const actorName = currentUser ? currentUser.fullName || currentUser.username : 'Staff Member';
+    const actorRole = currentUser?.role || 'Staff';
+    logAuditEvent(
+      'admin_logout',
+      `Staff session ended for ${actorName} (${actorRole}). Terminal locked and returned to Voter Booth.`,
+      'security',
+      { actor: actorName, actorRole }
+    );
     setIsAdminAuthenticated(false);
     setCurrentUser(null);
     setCurrentView('booth');
@@ -1196,6 +1209,7 @@ export default function App() {
               ballots={data.ballots}
               voters={data.voters}
               onReturnToBooth={() => setCurrentView('booth')}
+              onLogout={handleLogoutAdmin}
             />
           </PageBackground>
         )}
@@ -1231,6 +1245,7 @@ export default function App() {
               onUpdateAccount={handleUpdateAccount}
               onDeleteAccount={handleDeleteAccount}
               onSwitchUser={handleSwitchUser}
+              onLogout={handleLogoutAdmin}
             />
           </PageBackground>
         )}
@@ -1261,6 +1276,7 @@ export default function App() {
               onPublishToggle={() =>
                 handleUpdateStatus(status === 'Results Published' ? 'Closed' : 'Results Published')
               }
+              onLogout={handleLogoutAdmin}
             />
           </PageBackground>
         )}
