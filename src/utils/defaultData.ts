@@ -60,6 +60,17 @@ export const DEFAULT_USER_ACCOUNTS: UserAccount[] = [
     twoFactorSecret: 'DEVL-2FA-7814',
     twoFactorBackupCodes: ['BACKUP-7814', 'BACKUP-5561', 'EMERGENCY-2026'],
   },
+  {
+    id: 'user-agent-monitor',
+    username: 'agentmonitor',
+    fullName: 'Accredited Agent Monitor (Observer)',
+    role: 'Agent Monitor',
+    passwordPin: 'agent123',
+    email: 'agent-observer@election-monitor.internal',
+    createdAt: '2026-09-01T08:00:00.000Z',
+    isActive: true,
+    twoFactorEnabled: false,
+  },
 ];
 
 export function getDefaultElectionData(): ElectionData {

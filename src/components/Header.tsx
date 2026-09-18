@@ -196,31 +196,35 @@ export const Header: React.FC<HeaderProps> = ({
             {isAdminAuthenticated ? (
               <div className="flex items-center gap-1.5 sm:gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 scrollbar-none">
                 <nav className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shrink-0">
-                  <button
-                    id="header-nav-booth"
-                    onClick={() => onSelectView('booth')}
-                    className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
-                      currentView === 'booth'
-                        ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <Vote className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span>Booth</span>
-                  </button>
+                  {currentUser?.role !== 'Agent Monitor' && (
+                    <>
+                      <button
+                        id="header-nav-booth"
+                        onClick={() => onSelectView('booth')}
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+                          currentView === 'booth'
+                            ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <Vote className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span>Booth</span>
+                      </button>
 
-                  <button
-                    id="header-nav-results"
-                    onClick={() => onSelectView('results')}
-                    className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
-                      currentView === 'results'
-                        ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span>Results</span>
-                  </button>
+                      <button
+                        id="header-nav-results"
+                        onClick={() => onSelectView('results')}
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+                          currentView === 'results'
+                            ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span>Results</span>
+                      </button>
+                    </>
+                  )}
 
                   <button
                     id="header-nav-agents"
@@ -236,34 +240,38 @@ export const Header: React.FC<HeaderProps> = ({
                     <span className="sm:hidden">Agents</span>
                   </button>
 
-                  <button
-                    id="header-nav-admin"
-                    onClick={onRequestAdmin}
-                    className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
-                      currentView === 'admin' && activeAdminTab !== 'audit'
-                        ? 'bg-slate-900 dark:bg-slate-950 text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span className="hidden sm:inline">Commission</span>
-                    <span className="sm:hidden">Admin</span>
-                  </button>
+                  {currentUser?.role !== 'Agent Monitor' && (
+                    <>
+                      <button
+                        id="header-nav-admin"
+                        onClick={onRequestAdmin}
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+                          currentView === 'admin' && activeAdminTab !== 'audit'
+                            ? 'bg-slate-900 dark:bg-slate-950 text-white shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">Commission</span>
+                        <span className="sm:hidden">Admin</span>
+                      </button>
 
-                  <button
-                    id="header-nav-audit-trail"
-                    onClick={onRequestAuditTrail || onRequestAdmin}
-                    className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
-                      currentView === 'admin' && activeAdminTab === 'audit'
-                        ? 'bg-purple-600 text-white shadow-xs'
-                        : 'text-purple-700 dark:text-purple-300 hover:bg-purple-100/60 dark:hover:bg-purple-950/50'
-                    }`}
-                    title="Cryptographic Audit Trail & Legal Chain of Custody"
-                  >
-                    <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
-                    <span className="hidden sm:inline">Audit Trail</span>
-                    <span className="sm:hidden">Audit</span>
-                  </button>
+                      <button
+                        id="header-nav-audit-trail"
+                        onClick={onRequestAuditTrail || onRequestAdmin}
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+                          currentView === 'admin' && activeAdminTab === 'audit'
+                            ? 'bg-purple-600 text-white shadow-xs'
+                            : 'text-purple-700 dark:text-purple-300 hover:bg-purple-100/60 dark:hover:bg-purple-950/50'
+                        }`}
+                        title="Cryptographic Audit Trail & Legal Chain of Custody"
+                      >
+                        <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
+                        <span className="hidden sm:inline">Audit Trail</span>
+                        <span className="sm:hidden">Audit</span>
+                      </button>
+                    </>
+                  )}
                 </nav>
 
                 {/* Staff User Badge & Logout Option */}

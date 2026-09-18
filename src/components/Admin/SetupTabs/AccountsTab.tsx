@@ -26,6 +26,8 @@ import {
   ShieldAlert,
   Save,
   LogOut,
+  Eye,
+  Lock,
 } from 'lucide-react';
 import { ConfirmModal } from '../../Common/ConfirmModal';
 
@@ -139,6 +141,13 @@ const ROLE_DETAILS: Record<
     description:
       'Technical engineering administration. Decides permissions for every account, inspects underlying storage schemas, system diagnostics, and account setups.',
     icon: Terminal,
+  },
+  'Agent Monitor': {
+    badgeClass: 'bg-purple-50 text-purple-800 border-purple-300',
+    title: 'Agent Monitor (Observer)',
+    description:
+      'Accredited election monitoring agent account. Dedicated exclusively to viewing real-time race monitoring charts with administrative controls locked.',
+    icon: Eye,
   },
 };
 
@@ -412,6 +421,8 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
                           ? 'bg-cyan-600 text-white'
                           : acc.role === 'Association President'
                           ? 'bg-emerald-600 text-white'
+                          : acc.role === 'Agent Monitor'
+                          ? 'bg-purple-600 text-white'
                           : 'bg-amber-600 text-white'
                       }`}
                     >
@@ -686,6 +697,7 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
                   <th className="py-3 px-3 text-center text-emerald-600">Association President</th>
                   <th className="py-3 px-3 text-center text-amber-600">Alumni Rep</th>
                   <th className="py-3 px-3 text-center text-cyan-600">Developer</th>
+                  <th className="py-3 px-3 text-center text-purple-600">Agent Monitor</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
@@ -701,6 +713,7 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
                         'Association President',
                         'Alumni Rep',
                         'Developer',
+                        'Agent Monitor',
                       ] as UserRole[]
                     ).map((r) => {
                       const isAllowed = ROLE_PERMISSIONS[r][def.key];
@@ -1000,6 +1013,9 @@ export const AccountsTab: React.FC<AccountsTabProps> = ({
                   </option>
                   <option value="Developer">
                     Developer (System Diagnostics & Tech Control)
+                  </option>
+                  <option value="Agent Monitor">
+                    Agent Monitor (Observer - View-Only Real-Time Monitor)
                   </option>
                 </select>
               </div>

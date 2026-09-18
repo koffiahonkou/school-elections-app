@@ -7,6 +7,8 @@ import {
   Voter,
   Ballot,
   ABSTAIN_SELECTION,
+  UserAccount,
+  RolePermissions,
 } from '../../types';
 import { calculateElectionTallies } from '../../utils/normalization';
 import {
@@ -61,6 +63,8 @@ interface AgentMonitoringViewProps {
   candidates: Candidate[];
   ballots: Ballot[];
   voters: Voter[];
+  currentUser?: UserAccount | null;
+  permissions?: RolePermissions;
   onReturnToBooth?: () => void;
   onLogout?: () => void;
 }
@@ -102,9 +106,15 @@ export const AgentMonitoringView: React.FC<AgentMonitoringViewProps> = ({
   candidates,
   ballots: initialBallots,
   voters,
+  currentUser,
+  permissions,
   onReturnToBooth,
   onLogout,
 }) => {
+  // Determine if current user is an Agent Monitor or has view-only restrictions
+  const isAgentMonitorRole = currentUser?.role === 'Agent Monitor';
+  const isViewOnly = isAgentMonitorRole;
+
   const [includeAbstainInChart, setIncludeAbstainInChart] = useState<boolean>(true);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<string>(
     new Date().toLocaleTimeString()
@@ -428,6 +438,12 @@ export const AgentMonitoringView: React.FC<AgentMonitoringViewProps> = ({
                     <ShieldCheck className="w-3 h-3 text-amber-400" />
                     Anonymous Distribution Feed
                   </span>
+                  {isViewOnly && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-2xs font-black uppercase tracking-wider bg-purple-950/80 text-purple-200 border border-purple-500/50">
+                      <Eye className="w-3 h-3 text-purple-300" />
+                      View-Only Observer Mode (Interactive Controls Disabled)
+                    </span>
+                  )}
                   {/* Firestore Real-Time Stream Status Badge */}
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-extrabold uppercase tracking-wider border transition-colors ${
@@ -487,8 +503,13 @@ export const AgentMonitoringView: React.FC<AgentMonitoringViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowAgentModal(true)}
-                className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-                title="Register Polling Agent or Observer in Firestore"
+                disabled={isViewOnly}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                  isViewOnly
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 opacity-60'
+                    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs cursor-pointer'
+                }`}
+                title={isViewOnly ? 'Agent registration disabled for view-only account' : 'Register Polling Agent or Observer in Firestore'}
               >
                 <Users className="w-3.5 h-3.5" />
                 <span>Agent Check-In</span>
@@ -615,7 +636,12 @@ export const AgentMonitoringView: React.FC<AgentMonitoringViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowAgentModal(true)}
-                className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
+                disabled={isViewOnly}
+                className={
+                  isViewOnly
+                    ? 'text-slate-400 dark:text-slate-600 font-semibold cursor-not-allowed'
+                    : 'text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer'
+                }
               >
                 + Check In
               </button>
@@ -634,8 +660,13 @@ export const AgentMonitoringView: React.FC<AgentMonitoringViewProps> = ({
               <button
                 type="button"
                 onClick={handleDepositTestVote}
-                className="px-2.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-2xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                title="Deposit an anonymous test vote to Firestore to verify real-time chart animation"
+                disabled={isViewOnly}
+                className={`px-2.5 py-1.5 rounded-xl border text-2xs font-bold flex items-center gap-1 transition-colors ${
+                  isViewOnly
+                    ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-60'
+                    : 'bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-900 dark:text-purple-300 border-purple-200 dark:border-purple-800 cursor-pointer'
+                }`}
+                title={isViewOnly ? 'Simulate Vote disabled for view-only account' : 'Deposit an anonymous test vote to Firestore to verify real-time chart animation'}
               >
                 <Sparkles className="w-3 h-3 text-purple-500" />
                 <span>Simulate Vote</span>
@@ -643,9 +674,13 @@ export const AgentMonitoringView: React.FC<AgentMonitoringViewProps> = ({
               <button
                 type="button"
                 onClick={handleSyncBallotsToFirestore}
-                disabled={isSyncing}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-2xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                title="Synchronize all local ballots to Firestore votes collection"
+                disabled={isSyncing || isViewOnly}
+                className={`px-2.5 py-1.5 rounded-xl text-2xs font-bold flex items-center gap-1 transition-colors ${
+                  isViewOnly
+                    ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-60'
+                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 cursor-pointer'
+                }`}
+                title={isViewOnly ? 'Sync Votes disabled for view-only account' : 'Synchronize all local ballots to Firestore votes collection'}
               >
                 <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-indigo-500' : ''}`} />
                 <span>Sync Votes</span>
@@ -655,7 +690,13 @@ export const AgentMonitoringView: React.FC<AgentMonitoringViewProps> = ({
               <button
                 type="button"
                 onClick={handleSyncTokensToFirestore}
-                className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-semibold cursor-pointer underline"
+                disabled={isViewOnly}
+                className={
+                  isViewOnly
+                    ? 'text-slate-400 dark:text-slate-600 font-semibold cursor-not-allowed'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-semibold cursor-pointer underline'
+                }
+                title={isViewOnly ? 'Sync Roster Tokens disabled for view-only account' : undefined}
               >
                 Sync Roster Tokens
               </button>

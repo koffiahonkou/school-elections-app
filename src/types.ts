@@ -4,7 +4,8 @@ export type UserRole =
   | 'Electoral Commissioner'
   | 'Association President'
   | 'Alumni Rep'
-  | 'Developer';
+  | 'Developer'
+  | 'Agent Monitor';
 
 export interface RolePermissions {
   canConfigureElection: boolean; // Change title, school, date, closing time, clock options
@@ -96,6 +97,18 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewAuditLog: true,
     canExportReports: true,
     canAccessDiagnostics: true,
+  },
+  'Agent Monitor': {
+    canConfigureElection: false,
+    canManageBallot: false,
+    canManageRoster: false,
+    canChangePollStatus: false,
+    canViewLiveTallies: true,
+    canManageAccounts: false,
+    canResetElection: false,
+    canViewAuditLog: false,
+    canExportReports: false,
+    canAccessDiagnostics: false,
   },
 };
 

@@ -14,6 +14,7 @@ import {
   Position,
   UserAccount,
   Voter,
+  getUserPermissions,
 } from './types';
 import {
   getDefaultElectionData,
@@ -170,6 +171,14 @@ export default function App() {
           }
           if (Array.isArray(cloudMeta.positions) || cloudMeta.config) {
             const fallback = getDefaultElectionData();
+            let baseAccounts = (Array.isArray(cloudMeta.accounts) && cloudMeta.accounts.length > 0)
+              ? [...cloudMeta.accounts]
+              : [...fallback.accounts];
+            for (const defAcc of fallback.accounts) {
+              if (!baseAccounts.some((a) => a.id === defAcc.id || a.role === defAcc.role)) {
+                baseAccounts.push(defAcc);
+              }
+            }
             const cloudData: ElectionData = {
               config: cloudMeta.config ? { ...fallback.config, ...cloudMeta.config } : fallback.config,
               positions: Array.isArray(cloudMeta.positions) ? cloudMeta.positions : [],
@@ -177,7 +186,7 @@ export default function App() {
               voters: Array.isArray(cloudMeta.voters) ? cloudMeta.voters : [],
               ballots: [],
               auditLogs: fallback.auditLogs,
-              accounts: (Array.isArray(cloudMeta.accounts) && cloudMeta.accounts.length > 0) ? cloudMeta.accounts : fallback.accounts,
+              accounts: baseAccounts,
             };
             setData(cloudData);
             saveElectionData(cloudData).catch(() => {});
@@ -797,7 +806,11 @@ export default function App() {
     const safeTab = isRestrictedTab && !isDeveloper ? 'turnout' : targetTab;
     setAdminActiveTab(safeTab);
     if (isAdminAuthenticated) {
-      setCurrentView('admin');
+      if (currentUser?.role === 'Agent Monitor') {
+        setCurrentView('agents');
+      } else {
+        setCurrentView('admin');
+      }
     } else {
       setIsAdminAuthModalOpen(true);
     }
@@ -813,10 +826,17 @@ export default function App() {
     if (userToSet) {
       setCurrentUser(userToSet);
     }
+    setIsAdminAuthModalOpen(false);
+
+    // Agent Monitor role is exclusively dedicated to the Agent Monitoring station
+    if (userToSet?.role === 'Agent Monitor') {
+      setCurrentView('agents');
+      return;
+    }
+
     if (userToSet?.role !== 'Developer' && (adminActiveTab === 'accounts' || adminActiveTab === 'settings')) {
       setAdminActiveTab('turnout');
     }
-    setIsAdminAuthModalOpen(false);
     setCurrentView('admin');
   };
 
@@ -1019,6 +1039,9 @@ export default function App() {
     setCurrentUser(account);
     sounds.playSuccess();
     logAuditEvent('admin_login', `Session context switched to ${account.fullName} (${account.role}).`, 'security');
+    if (account.role === 'Agent Monitor') {
+      setCurrentView('agents');
+    }
   };
 
   const handleExportBackupJson = () => {
@@ -1109,10 +1132,18 @@ export default function App() {
             }
             return;
           }
-          if (view === 'admin') {
-            handleRequestAdminView();
-          } else {
-            setCurrentView(view);
+          if (isAdminAuthenticated) {
+            // Agent Monitor is strictly confined to the monitoring station
+            if (currentUser?.role === 'Agent Monitor') {
+              setCurrentView('agents');
+              return;
+            }
+            if (view === 'admin') {
+              handleRequestAdminView();
+            } else {
+              setCurrentView(view);
+            }
+            return;
           }
         }}
         isPractice={isPractice}
@@ -1203,7 +1234,9 @@ export default function App() {
               candidates={data.candidates}
               ballots={data.ballots}
               voters={data.voters}
-              onReturnToBooth={() => setCurrentView('booth')}
+              currentUser={currentUser}
+              permissions={getUserPermissions(currentUser)}
+              onReturnToBooth={currentUser?.role === 'Agent Monitor' ? undefined : () => setCurrentView('booth')}
               onLogout={handleLogoutAdmin}
             />
           </PageBackground>

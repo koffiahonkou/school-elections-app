@@ -48,6 +48,14 @@ export function normalizeElectionData(raw: ElectionData): ElectionData {
     showClockToVoters: raw.config.showClockToVoters !== false,
   };
 
+  // Ensure any standard default accounts (like the accredited Agent Monitor) are present if missing
+  let mergedAccounts = raw.accounts && raw.accounts.length > 0 ? [...raw.accounts] : [...DEFAULT_USER_ACCOUNTS];
+  for (const defAcc of DEFAULT_USER_ACCOUNTS) {
+    if (!mergedAccounts.some((a) => a.id === defAcc.id || a.role === defAcc.role)) {
+      mergedAccounts.push(defAcc);
+    }
+  }
+
   return {
     ...raw,
     config,
@@ -56,7 +64,7 @@ export function normalizeElectionData(raw: ElectionData): ElectionData {
     voters: raw.voters || [],
     ballots: raw.ballots || [],
     auditLogs: raw.auditLogs || [],
-    accounts: (raw.accounts && raw.accounts.length > 0) ? raw.accounts : DEFAULT_USER_ACCOUNTS,
+    accounts: mergedAccounts,
   };
 }
 
