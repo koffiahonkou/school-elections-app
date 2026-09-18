@@ -144,7 +144,7 @@ export default function App() {
     const initializeData = async () => {
       let resolvedData = false;
 
-      // Safety timeout: Ensure the app renders within 2.5 seconds even if storage or networks are slow
+      // Safety timeout: Ensure the app renders within 5.5 seconds even if storage or networks are slow
       const safetyTimeout = setTimeout(() => {
         if (isMounted) {
           if (!resolvedData) {
@@ -153,13 +153,13 @@ export default function App() {
           }
           setIsStatusChecked(true);
         }
-      }, 2500);
+      }, 5500);
 
       // 1. PRIORITIZE WAITING FOR FIREBASE 'ElectionStatus' CHECK
       // Strictly eliminates transient 'closed' or 'setup' state flashes during page refresh
       let cloudStatusVerified = false;
       try {
-        const timeoutPromise = new Promise<null>((res) => setTimeout(() => res(null), 2500));
+        const timeoutPromise = new Promise<null>((res) => setTimeout(() => res(null), 5000));
         const cloudMeta = await Promise.race([getElectionMetadataFromFirestore(), timeoutPromise]);
 
         if (cloudMeta && isMounted) {
@@ -168,16 +168,16 @@ export default function App() {
             saveStoredElectionStatus(cloudMeta.status);
             cloudStatusVerified = true;
           }
-          if (cloudMeta.positions && cloudMeta.positions.length > 0) {
+          if (Array.isArray(cloudMeta.positions) || cloudMeta.config) {
             const fallback = getDefaultElectionData();
             const cloudData: ElectionData = {
               config: cloudMeta.config ? { ...fallback.config, ...cloudMeta.config } : fallback.config,
-              positions: cloudMeta.positions || fallback.positions,
-              candidates: cloudMeta.candidates || fallback.candidates,
-              voters: cloudMeta.voters || fallback.voters,
+              positions: Array.isArray(cloudMeta.positions) ? cloudMeta.positions : [],
+              candidates: Array.isArray(cloudMeta.candidates) ? cloudMeta.candidates : [],
+              voters: Array.isArray(cloudMeta.voters) ? cloudMeta.voters : [],
               ballots: [],
               auditLogs: fallback.auditLogs,
-              accounts: (cloudMeta.accounts && cloudMeta.accounts.length > 0) ? cloudMeta.accounts : fallback.accounts,
+              accounts: (Array.isArray(cloudMeta.accounts) && cloudMeta.accounts.length > 0) ? cloudMeta.accounts : fallback.accounts,
             };
             setData(cloudData);
             saveElectionData(cloudData).catch(() => {});
@@ -261,17 +261,19 @@ export default function App() {
         saveStoredElectionStatus(meta.status);
         setIsStatusChecked(true);
       }
-      if (meta.positions && meta.candidates && meta.positions.length > 0) {
+      if (Array.isArray(meta.positions) && Array.isArray(meta.candidates)) {
         setData((prev) => {
           if (!prev) return prev;
-          return {
+          const updated: ElectionData = {
             ...prev,
             config: meta.config ? { ...prev.config, ...meta.config } : prev.config,
-            positions: meta.positions || prev.positions,
-            candidates: meta.candidates || prev.candidates,
-            voters: meta.voters || prev.voters,
-            accounts: (meta.accounts && meta.accounts.length > 0) ? meta.accounts : prev.accounts,
+            positions: meta.positions,
+            candidates: meta.candidates,
+            voters: Array.isArray(meta.voters) ? meta.voters : prev.voters,
+            accounts: (Array.isArray(meta.accounts) && meta.accounts.length > 0) ? meta.accounts : prev.accounts,
           };
+          saveElectionData(updated).catch(() => {});
+          return updated;
         });
       }
     });
@@ -282,18 +284,9 @@ export default function App() {
       if (!isMounted) return;
       setData((prev) => {
         if (!prev) return prev;
-        const currentBallotMap = new Map(prev.ballots.map((b) => [b.id, b]));
-        let hasNew = false;
-        liveBallots.forEach((b) => {
-          if (!currentBallotMap.has(b.id)) {
-            currentBallotMap.set(b.id, b);
-            hasNew = true;
-          }
-        });
-        if (!hasNew && liveBallots.length === prev.ballots.length) return prev;
         return {
           ...prev,
-          ballots: Array.from(currentBallotMap.values()),
+          ballots: liveBallots,
         };
       });
     });
@@ -930,7 +923,7 @@ export default function App() {
   };
 
   const handleStartNewElection = async (clearRoster: boolean, isFullSystemWipe = false) => {
-    if (isFullSystemWipe) {
+    if (isFullSystemWipe || clearRoster) {
       try {
         await clearAllFirestoreElectionData();
       } catch (err) {
@@ -939,16 +932,18 @@ export default function App() {
     }
     const empty = createEmptyElectionData(
       isFullSystemWipe ? 'New Student Election' : (data?.config.title || 'New Student Election'),
-      isFullSystemWipe ? (data?.config.schoolName || 'Lincoln High School') : (data?.config.schoolName || 'Our School')
+      isFullSystemWipe ? (data?.config.schoolName || 'Our School') : (data?.config.schoolName || 'Our School')
     );
     if (!clearRoster && !isFullSystemWipe && data?.voters) {
       // Keep roster but reset voted flags
       empty.voters = data.voters.map((v) => ({ ...v, hasVoted: false, votedAt: null }));
     }
+    if (isFullSystemWipe || clearRoster) {
+      empty.voters = [];
+    }
     if (isFullSystemWipe) {
       empty.positions = [];
       empty.candidates = [];
-      empty.voters = [];
       empty.ballots = [];
     }
     // Retain registered staff accounts across resets
@@ -958,9 +953,9 @@ export default function App() {
     setData(empty);
     setStatus('Setup');
     saveStoredElectionStatus('Setup');
-    saveElectionStatusToFirestore('Setup', currentUser?.fullName || 'Admin').catch(() => {});
-    saveElectionStateToFirestore(empty, 'Setup', currentUser?.fullName || 'Admin').catch(() => {});
-    saveElectionData(empty);
+    await saveElectionStatusToFirestore('Setup', currentUser?.fullName || 'Admin').catch(() => {});
+    await saveElectionStateToFirestore(empty, 'Setup', currentUser?.fullName || 'Admin').catch(() => {});
+    await saveElectionData(empty);
     sounds.playSelect();
     logAuditEvent(
       'settings_updated',

@@ -353,13 +353,13 @@ export async function saveElectionStateToFirestore(
 
     if (status) payload.status = status;
     if (data.config) payload.config = data.config;
-    if (data.positions) payload.positions = data.positions;
-    if (data.candidates) payload.candidates = data.candidates;
-    if (data.voters) {
+    if (data.positions !== undefined) payload.positions = data.positions;
+    if (data.candidates !== undefined) payload.candidates = data.candidates;
+    if (data.voters !== undefined) {
       payload.voters = data.voters;
       payload.totalEligibleVoters = data.voters.length;
     }
-    if (data.accounts) payload.accounts = data.accounts;
+    if (data.accounts !== undefined) payload.accounts = data.accounts;
 
     await setDoc(metaRef, sanitizeForFirestore(payload), { merge: true });
 
