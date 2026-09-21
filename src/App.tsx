@@ -636,7 +636,7 @@ export default function App() {
     const voterId = activeVoter.voterId;
     const pin = activeVoter.pin;
 
-    // Submit to server online vote endpoint (handled with atomic queue mutex)
+    // Submit to server online vote endpoint (if running with Express backend)
     try {
       const response = await fetch('/api/vote', {
         method: 'POST',
@@ -649,52 +649,55 @@ export default function App() {
         }),
       });
 
-      const resData = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      if (response.ok && contentType.includes('application/json')) {
+        const resData = await response.json();
 
-      if (!response.ok || !resData.success) {
-        const errorMsg = resData.error || 'Failed to submit ballot online.';
-        alert(errorMsg);
-        setIsSubmittingVote(false);
-        if (response.status === 409) {
-          handleCancelVoterSession();
+        if (!resData.success) {
+          const errorMsg = resData.error || 'Failed to submit ballot online.';
+          alert(errorMsg);
+          setIsSubmittingVote(false);
+          if (response.status === 409) {
+            handleCancelVoterSession();
+          }
+          return;
         }
+
+        // Live state successfully updated on online server
+        if (resData.data) {
+          setData(resData.data);
+          saveElectionData(resData.data).catch(() => {});
+          // Synchronize anonymous vote to Firestore and update voter token
+          const castBallot = resData.data.ballots[resData.data.ballots.length - 1];
+          if (castBallot) {
+            saveAnonymousVoteToFirestore(castBallot).catch((err) =>
+              console.warn('[Firebase] Firestore vote sync warning:', err)
+            );
+          }
+          if (!isPractice && voterId) {
+            markVoterTokenUsedInFirestore(voterId).catch((err) =>
+              console.warn('[Firebase] Firestore token sync warning:', err)
+            );
+          }
+        }
+
+        clearBallotAutosave(voterId);
+        try {
+          sessionStorage.removeItem(ACTIVE_VOTER_SESSION_KEY);
+        } catch {
+          // ignore
+        }
+
+        sounds.playSuccess();
+        setIsSubmittingVote(false);
+        setIsReviewModalOpen(false);
+        setConfirmedVoterName(voterName);
+        setIsVoteConfirmed(true);
+        setActiveVoter(null);
         return;
       }
-
-      // Live state successfully updated on online server
-      if (resData.data) {
-        setData(resData.data);
-        saveElectionData(resData.data).catch(() => {});
-        // Synchronize anonymous vote to Firestore and update voter token
-        const castBallot = resData.data.ballots[resData.data.ballots.length - 1];
-        if (castBallot) {
-          saveAnonymousVoteToFirestore(castBallot).catch((err) =>
-            console.warn('[Firebase] Firestore vote sync warning:', err)
-          );
-        }
-        if (!isPractice && voterId) {
-          markVoterTokenUsedInFirestore(voterId).catch((err) =>
-            console.warn('[Firebase] Firestore token sync warning:', err)
-          );
-        }
-      }
-
-      clearBallotAutosave(voterId);
-      try {
-        sessionStorage.removeItem(ACTIVE_VOTER_SESSION_KEY);
-      } catch {
-        // ignore
-      }
-
-      sounds.playSuccess();
-      setIsSubmittingVote(false);
-      setIsReviewModalOpen(false);
-      setConfirmedVoterName(voterName);
-      setIsVoteConfirmed(true);
-      setActiveVoter(null);
-      return;
     } catch (networkErr) {
-      console.warn('Online server unreachable, processing with local fallback:', networkErr);
+      console.warn('Online server endpoint unreachable or static host (Netlify), processing via Firestore direct submission:', networkErr);
     }
 
     // Local Fallback (if server unreachable or strictly offline)
