@@ -189,6 +189,18 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
+
+              {/* Force Refresh / Sync Station for Mobile */}
+              <button
+                id="header-refresh-station-mobile-btn"
+                type="button"
+                onClick={() => forceClearAppCacheAndReload()}
+                title="Refresh Station to latest version (clears browser cache)"
+                className="p-2 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                aria-label="Refresh Station"
+              >
+                <RotateCw className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
